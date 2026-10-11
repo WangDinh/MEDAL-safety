@@ -1,0 +1,405 @@
+{
+  "id": "safelab01onboard",
+  "name": "SafeLab 01 Person Onboard",
+  "active": false,
+  "nodes": [
+    {
+      "name": "F01 row added",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "F01_RESPONSES"
+        },
+        "event": "rowAdded",
+        "options": {
+          "valueRender": "UNFORMATTED_VALUE",
+          "dateTimeRenderOption": "FORMATTED_STRING"
+        }
+      },
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "__CRED_SHEETS_TRIGGER__",
+          "name": "SafeLab Sheets Trigger"
+        }
+      },
+      "id": "b038be36-bbfa-4d96-a391-43c6ab4619a7"
+    },
+    {
+      "name": "Read CONFIG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CONFIG"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "9d68465f-9c01-46ce-a1e1-e6e5e71b6373"
+    },
+    {
+      "name": "Read PEOPLE",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "PEOPLE"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "88a6eed5-412d-4237-a008-8301084c4629"
+    },
+    {
+      "name": "Read TRAINING_TYPES",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "TRAINING_TYPES"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "95da6649-50ba-4d2b-a385-03afb2bb85c2"
+    },
+    {
+      "name": "Build person + welcome email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 01 Person onboard: F01 row -> upsert PEOPLE, welcome email ----\nconst existing = {};\nrowsOf('Read PEOPLE').forEach((p) => { if (lower(p.email)) existing[lower(p.email)] = p; });\nconst requiredForAll = rowsOf('Read TRAINING_TYPES').filter((t) =>\n  SafeLab.parseList(t.required_for).some((x) => x.toUpperCase() === 'ALL'));\n\nconst people = {};\nconst auditRows = [];\nconst emails = [];\n\nfor (const r of rowsOf('F01 row added')) {\n  const email = lower(r['Email Address']);\n  if (!email) continue;\n  const before = existing[email];\n  const person = {\n    email,\n    full_name: text(r['Full name']),\n    role: text(r['Role']),\n    project: text(r['Project']),\n    supervisor_email: lower(r['Supervisor email']),\n    vn_osh_group: text(r['Vietnam OSH training group']),\n    status: 'ACTIVE',\n    registered_at: (before && text(before.registered_at)) || nowIso,\n    updated_at: nowIso,\n  };\n  people[email] = sheetRow(person); // several submissions in one poll: the last one wins\n\n  auditRows.push(audit(email, before ? 'PERSON_UPDATED' : 'PERSON_REGISTERED', 'PEOPLE', email,\n    `${person.role}; project ${person.project || '-'}; OSH ${person.vn_osh_group || '-'}`));\n\n  const trainings = requiredForAll.map((t) => {\n    const months = Number(t.validity_months) || 0;\n    const validity = months > 0 ? `valid ${months} months` : 'does not expire';\n    const material = text(t.link) ? ` – ${link(t.link, 'training material')}` : '';\n    return `<li><b>${esc(t.training_code)}</b> – ${esc(t.name)} (${validity})${material}</li>`;\n  }).join('');\n  const oshNote = !person.vn_osh_group || person.vn_osh_group.toLowerCase() === 'not yet classified'\n    ? '<p><b>Note:</b> your Vietnam OSH training group is not classified yet – please confirm it with your supervisor.</p>'\n    : '';\n  emails.push(mail(email, `[SafeLab] ${before ? 'Registration updated' : 'Welcome to SafeLab'} – ${person.full_name || email}`,\n    `<h2>${before ? 'Your SafeLab registration was updated' : 'Welcome to SafeLab'}, ${esc(person.full_name || email)}</h2>` +\n    `<p>Role: <b>${esc(person.role)}</b> · Project: <b>${esc(person.project || '-')}</b> · ` +\n    `Vietnam OSH group: <b>${esc(person.vn_osh_group || '-')}</b></p>` + oshNote +\n    `<p><b>Training required for everyone:</b></p><ul>${trainings || '<li>(none configured)</li>'}</ul>` +\n    '<p><b>Next steps</b></p><ol>' +\n    `<li>After completing each training, record it with the ${link(cfg.FORM_F02_URL, 'Training Record form (F02)')}.</li>` +\n    `<li>Read and acknowledge the SOPs for your work with the ${link(cfg.FORM_F03_URL, 'SOP Acknowledgement form (F03)')}.</li>` +\n    '<li>Only then submit an Experimental Safety Approval (F04) – it is checked automatically against your training and SOP records.</li>' +\n    '</ol>'));\n}\n\nreturn [{ json: { people: Object.values(people), audit: auditRows, emails: emails.filter((e) => e.to) } }];\n"
+      },
+      "id": "ad807d80-e8c3-4158-a7da-c2b630c29d53"
+    },
+    {
+      "name": "Split PEOPLE rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        140
+      ],
+      "parameters": {
+        "fieldToSplitOut": "people",
+        "options": {}
+      },
+      "id": "27f007a1-82f3-4428-a9a2-3dad06bc1563"
+    },
+    {
+      "name": "Upsert PEOPLE",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        140
+      ],
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "PEOPLE"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "email"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "c6d77e07-aede-4e97-a801-00a0093c14b3"
+    },
+    {
+      "name": "Split audit rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "fieldToSplitOut": "audit",
+        "options": {}
+      },
+      "id": "b282a9dd-20a3-471e-ac75-e4e7d172d947"
+    },
+    {
+      "name": "Append AUDIT_LOG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        300
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "AUDIT_LOG"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "3ee39393-3524-4283-a8f2-930f6fdb38ee"
+    },
+    {
+      "name": "Split emails",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        460
+      ],
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {}
+      },
+      "id": "79d26253-97b9-4ea7-aa04-19e462735b43"
+    },
+    {
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1360,
+        460
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "__CRED_GMAIL__",
+          "name": "SafeLab Gmail"
+        }
+      },
+      "webhookId": "0780c22b-beca-4ed5-ab2d-c25fde178287",
+      "id": "58633250-23c1-40a7-a815-90ebd94e466c"
+    }
+  ],
+  "connections": {
+    "F01 row added": {
+      "main": [
+        [
+          {
+            "node": "Read CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CONFIG": {
+      "main": [
+        [
+          {
+            "node": "Read PEOPLE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read PEOPLE": {
+      "main": [
+        [
+          {
+            "node": "Read TRAINING_TYPES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read TRAINING_TYPES": {
+      "main": [
+        [
+          {
+            "node": "Build person + welcome email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build person + welcome email": {
+      "main": [
+        [
+          {
+            "node": "Split PEOPLE rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split audit rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split PEOPLE rows": {
+      "main": [
+        [
+          {
+            "node": "Upsert PEOPLE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split audit rows": {
+      "main": [
+        [
+          {
+            "node": "Append AUDIT_LOG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split emails": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": []
+}

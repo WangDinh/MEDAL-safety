@@ -1,0 +1,362 @@
+{
+  "id": "safelab08change",
+  "name": "SafeLab 08 Experiment Change",
+  "active": false,
+  "nodes": [
+    {
+      "name": "F05 row added",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "F05_RESPONSES"
+        },
+        "event": "rowAdded",
+        "options": {
+          "valueRender": "UNFORMATTED_VALUE",
+          "dateTimeRenderOption": "FORMATTED_STRING"
+        }
+      },
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "__CRED_SHEETS_TRIGGER__",
+          "name": "SafeLab Sheets Trigger"
+        }
+      },
+      "id": "a49c0041-dc2a-4fac-a006-232145c3e5e0"
+    },
+    {
+      "name": "Read CONFIG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CONFIG"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "61899b52-b95e-439d-aa3d-d0a1aeb214e0"
+    },
+    {
+      "name": "Read EXPERIMENTS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "EXPERIMENTS"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "20e5e6f8-67a8-45f5-a50b-23dcd93c37f0"
+    },
+    {
+      "name": "Handle change request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 08 Experiment change: F05 row -> CHANGE_PENDING (new F04 needed) or FYI to reviewer ----\nconst experiments = rowsOf('Read EXPERIMENTS');\n\nconst updates = [];\nconst auditRows = [];\nconst emails = [];\n\nfor (const r of rowsOf('F05 row added')) {\n  const submitter = lower(r['Email Address']);\n  const expId = text(r['Experiment ID']).toUpperCase();\n  const change = text(r['What is changing?']);\n  const major = text(r['Does the change add new hazards, chemicals, people or equipment?']).toUpperCase() === 'YES';\n  const exp = experiments.find((e) => text(e.exp_id).toUpperCase() === expId);\n\n  if (!exp) {\n    emails.push(mail(submitter, `[SafeLab] Experiment not found – ${expId || '(blank ID)'}`,\n      `<h2>Experiment ${esc(expId || '(blank ID)')} not found</h2>` +\n      '<p>Your Experiment Modification form (F05) refers to an experiment ID that does not exist. ' +\n      'Please check the ID (format EXP-YYYY-NNNN) in your approval emails and submit the form again.</p>' +\n      `<p>Your change description:<br>${esc(change).replace(/\\r?\\n/g, '<br>')}</p>`));\n    auditRows.push(audit(submitter, 'CHANGE_REJECTED', 'EXPERIMENTS', expId, 'experiment not found'));\n    continue;\n  }\n\n  const id = text(exp.exp_id);\n  const reviewer = lower(exp.reviewer_email) || lower(cfg[SafeLab.reviewerKeyFor(exp.inherent_level)]);\n  const changeHtml = `<p><b>What is changing</b> (filed by ${esc(submitter)}):<br>${esc(change).replace(/\\r?\\n/g, '<br>')}</p>`;\n  const summary = SafeLab.experimentSummaryHtml(exp, null, null, { exp_id: id });\n\n  if (major) {\n    updates.push({ exp_id: id, status: 'CHANGE_PENDING', current_stage: '', updated_at: nowIso });\n    emails.push(mail([reviewer, cfg.PI_EMAIL, exp.leader_email, submitter],\n      `[SafeLab] Change requires new approval – ${id} ${text(exp.title)}`,\n      `<h2>${esc(id)}: change requires a new safety approval</h2>` +\n      '<p>The change adds new hazards, chemicals, people or equipment. The experiment status is now ' +\n      `<b>CHANGE_PENDING</b> (was ${esc(exp.status || '-')}). <b>A new F04 Experimental Safety Approval is required</b> ` +\n      'before the change is implemented; any pending approval links for this experiment no longer work.</p>' +\n      changeHtml + `<p>Submit the new approval here: ${link(cfg.FORM_F04_URL, 'F04 form')}.</p>` + summary));\n  } else {\n    emails.push(mail(reviewer, `[SafeLab] FYI change – ${id} ${text(exp.title)}`,\n      `<h2>${esc(id)}: minor change (for information)</h2>` +\n      '<p>The submitter states that the change does <b>not</b> add hazards, chemicals, people or equipment, ' +\n      'so no new approval is required. Please contact the experiment leader if you disagree.</p>' + changeHtml + summary));\n  }\n  auditRows.push(audit(submitter, major ? 'CHANGE_PENDING' : 'CHANGE_FYI', 'EXPERIMENTS', id,\n    `${major ? 'adds hazards/chemicals/people/equipment' : 'minor change'}: ${change}`));\n}\n\nreturn [{ json: { experiments: updates, audit: auditRows, emails: emails.filter((e) => e.to) } }];\n"
+      },
+      "id": "b9b2013b-0465-4b55-aa31-c0c9c30c9b2a"
+    },
+    {
+      "name": "Split EXPERIMENTS updates",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        900,
+        140
+      ],
+      "parameters": {
+        "fieldToSplitOut": "experiments",
+        "options": {}
+      },
+      "id": "fa3f03a3-282a-4de1-a688-34d211b35650"
+    },
+    {
+      "name": "Update EXPERIMENTS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1140,
+        140
+      ],
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "EXPERIMENTS"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "exp_id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "0e8c42e6-a2b8-44a7-a0e2-67374c34bd5c"
+    },
+    {
+      "name": "Split audit rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "fieldToSplitOut": "audit",
+        "options": {}
+      },
+      "id": "11dd4ff0-83a5-42e0-a96e-7fe41fc7d9af"
+    },
+    {
+      "name": "Append AUDIT_LOG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1140,
+        300
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "AUDIT_LOG"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "8c586a2e-8413-4bae-a6a0-69e24fed5d39"
+    },
+    {
+      "name": "Split emails",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        900,
+        460
+      ],
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {}
+      },
+      "id": "8f807bc0-7625-41c0-a2ee-1fea5d1078a2"
+    },
+    {
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1140,
+        460
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "__CRED_GMAIL__",
+          "name": "SafeLab Gmail"
+        }
+      },
+      "webhookId": "f8fa2602-3a7c-4646-add0-4801cfca549c",
+      "id": "d062f88f-0de7-4597-a96b-10f6a65e55ab"
+    }
+  ],
+  "connections": {
+    "F05 row added": {
+      "main": [
+        [
+          {
+            "node": "Read CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CONFIG": {
+      "main": [
+        [
+          {
+            "node": "Read EXPERIMENTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read EXPERIMENTS": {
+      "main": [
+        [
+          {
+            "node": "Handle change request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle change request": {
+      "main": [
+        [
+          {
+            "node": "Split EXPERIMENTS updates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split audit rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split EXPERIMENTS updates": {
+      "main": [
+        [
+          {
+            "node": "Update EXPERIMENTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split audit rows": {
+      "main": [
+        [
+          {
+            "node": "Append AUDIT_LOG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split emails": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": []
+}

@@ -1,0 +1,319 @@
+{
+  "id": "safelab03expiry",
+  "name": "SafeLab 03 Training Expiry",
+  "active": false,
+  "nodes": [
+    {
+      "name": "Every day 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "e48d536e-7f51-4510-a3e6-69d1ceaa319f"
+    },
+    {
+      "name": "Read CONFIG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CONFIG"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "3b9828ab-47b2-4950-a2d6-5ec8e6310b3a"
+    },
+    {
+      "name": "Read TRAINING_TYPES",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "TRAINING_TYPES"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "87e71ecd-b6e5-4c13-ad13-783473a69fe6"
+    },
+    {
+      "name": "Read TRAINING_RECORDS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "TRAINING_RECORDS"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "06ace043-3144-484e-ad75-c4e581f67ee0"
+    },
+    {
+      "name": "Find expiring training",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 03 Training expiry: daily reminders + coordinator summary ----\nconst days = Number(cfg.EXPIRY_WARNING_DAYS) || 30;\nconst trainingTypes = rowsOf('Read TRAINING_TYPES');\nconst list = SafeLab.expiringTraining(rowsOf('Read TRAINING_RECORDS'), trainingTypes, today, days);\nconst typeLinks = {};\ntrainingTypes.forEach((t) => { typeLinks[text(t.training_code).toUpperCase()] = text(t.link); });\n\nconst when = (x) => (x.status === 'EXPIRED' ? `expired ${-x.days_left} day(s) ago` : `expires in ${x.days_left} day(s)`);\nconst th = 'style=\"text-align:left;padding:4px 8px;border:1px solid #ddd;background:#f3f4f6\"';\nconst td = 'style=\"padding:4px 8px;border:1px solid #ddd\"';\n\nconst emails = [];\nconst byPerson = {};\nlist.forEach((x) => { (byPerson[x.email] = byPerson[x.email] || []).push(x); });\n\nObject.entries(byPerson).forEach(([email, items]) => {\n  const expired = items.some((x) => x.status === 'EXPIRED');\n  const rows = items.map((x) => `<tr><td ${td}><b>${esc(x.training_code)}</b> – ${esc(x.name)}</td>` +\n    `<td ${td}>${esc(x.expires_on)}</td><td ${td}>${esc(when(x))}</td>` +\n    `<td ${td}>${typeLinks[x.training_code] ? link(typeLinks[x.training_code], 'material') : ''}</td></tr>`).join('');\n  emails.push(mail(email,\n    `[SafeLab] Training ${expired ? 'expired' : 'expiring soon'} – ${items.map((x) => x.training_code).join(', ')}`,\n    `<h2>Your lab-safety training needs renewal</h2>` +\n    `<table style=\"border-collapse:collapse\"><tr><th ${th}>Training</th><th ${th}>Valid until</th><th ${th}>Status</th><th ${th}></th></tr>${rows}</table>` +\n    '<p>Expired training blocks new experiment approvals. After renewing, record it with the ' +\n    `${link(cfg.FORM_F02_URL, 'Training Record form (F02)')}.</p>`));\n});\n\nif (list.length) {\n  const rows = list.map((x) => `<tr><td ${td}>${esc(x.email)}</td><td ${td}>${esc(x.training_code)}</td>` +\n    `<td ${td}>${esc(x.expires_on)}</td><td ${td}>${esc(x.status)} (${esc(when(x))})</td></tr>`).join('');\n  emails.push(mail(cfg.SAFETY_COORDINATOR_EMAIL,\n    `[SafeLab] Training expiry summary – ${list.length} record(s), ${Object.keys(byPerson).length} person(s)`,\n    `<h2>Training expired or expiring within ${days} days (${esc(today)})</h2>` +\n    `<table style=\"border-collapse:collapse\"><tr><th ${th}>Person</th><th ${th}>Training</th><th ${th}>Valid until</th><th ${th}>Status</th></tr>${rows}</table>` +\n    '<p>Each person has been sent their own reminder.</p>'));\n}\n\nconst auditRows = [audit('system', 'TRAINING_EXPIRY_CHECK', 'TRAINING_RECORDS', '',\n  `${list.length} record(s) expired/expiring within ${days} days; ${Object.keys(byPerson).length} reminder(s) sent`)];\n\nreturn [{ json: { audit: auditRows, emails: emails.filter((e) => e.to) } }];\n"
+      },
+      "id": "e5ab5c88-b7be-47c1-a978-c0e5e74270bf"
+    },
+    {
+      "name": "Split audit rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        220
+      ],
+      "parameters": {
+        "fieldToSplitOut": "audit",
+        "options": {}
+      },
+      "id": "0c354bbf-5cd2-4fef-ae02-875f93832684"
+    },
+    {
+      "name": "Append AUDIT_LOG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        220
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "AUDIT_LOG"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "20f189a5-7f74-4931-a423-1e2c784e20b6"
+    },
+    {
+      "name": "Split emails",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        380
+      ],
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {}
+      },
+      "id": "00bf8e17-c911-42fb-a0e1-d1c64e106053"
+    },
+    {
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1360,
+        380
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "__CRED_GMAIL__",
+          "name": "SafeLab Gmail"
+        }
+      },
+      "webhookId": "c04aebc9-4c30-4e30-a3e7-8427cca2b994",
+      "id": "d5bdb1e3-15e6-4032-a075-77a388499beb"
+    }
+  ],
+  "connections": {
+    "Every day 08:00": {
+      "main": [
+        [
+          {
+            "node": "Read CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CONFIG": {
+      "main": [
+        [
+          {
+            "node": "Read TRAINING_TYPES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read TRAINING_TYPES": {
+      "main": [
+        [
+          {
+            "node": "Read TRAINING_RECORDS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read TRAINING_RECORDS": {
+      "main": [
+        [
+          {
+            "node": "Find expiring training",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find expiring training": {
+      "main": [
+        [
+          {
+            "node": "Split audit rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split audit rows": {
+      "main": [
+        [
+          {
+            "node": "Append AUDIT_LOG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split emails": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": []
+}

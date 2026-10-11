@@ -1,0 +1,615 @@
+{
+  "id": "safelab07decision",
+  "name": "SafeLab 07 Experiment Decision",
+  "active": false,
+  "nodes": [
+    {
+      "name": "GET decision page",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "safelab-decision",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "8eda37b2-4a11-4d64-a19d-bdb9d517496d",
+      "id": "2269bd3d-e900-47e7-a78f-db6f2c8069c1"
+    },
+    {
+      "name": "POST decision",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        400
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "safelab-decision",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "dda06662-ae60-4d82-a48a-4314ed609b68",
+      "id": "9d04202a-d434-435d-aa1f-7586da6f51a5"
+    },
+    {
+      "name": "Read CONFIG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CONFIG"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "82093fb0-1762-41c7-ad3c-4e82f9685b9e"
+    },
+    {
+      "name": "Read EXPERIMENTS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "EXPERIMENTS"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "c36436e1-637a-499e-a006-eaf19cf413ba"
+    },
+    {
+      "name": "Read APPROVALS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "APPROVALS"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "a665dc9e-d02c-4163-a016-895e7e89719b"
+    },
+    {
+      "name": "Is POST?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "49e44b4c-dbd4-4a83-a230-953aff06f127",
+              "leftValue": "={{ $('POST decision').isExecuted }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "aa97bee8-6c61-4064-a0a2-478417b1b6e0"
+    },
+    {
+      "name": "Apply decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        140
+      ],
+      "parameters": {
+        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 07 POST: record a REVIEW or PI decision ----\nconst secret = $env.SAFELAB_SECRET;\nconst baseUrl = text($env.SAFELAB_PUBLIC_URL || 'http://localhost:5678').replace(/\\/+$/, '');\nconst result = (code, title, body, writes) => [{ json: { code, html:\n  '<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">' +\n  '<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">' +\n  `<title>${esc(title)} – SafeLab</title><style>` +\n  'body{font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#111;background:#f9fafb;margin:0}' +\n  'main{max-width:860px;margin:0 auto;padding:16px}h1{font-size:22px}table{max-width:100%}</style></head>' +\n  `<body><main><h1>${esc(title)}</h1>${body}</main></body></html>`,\n  experiments: [], approvals: [], audit: [], emails: [], ...(writes || {}) } }];\n\nconst b = $('POST decision').first().json.body || {};\nconst expId = text(b.exp);\nconst stage = text(b.stage).toUpperCase();\nconst token = text(b.token);\nconst decision = text(b.decision).toUpperCase();\nconst comment = text(b.comment);\nconst pageUrl = `safelab-decision?exp=${encodeURIComponent(expId)}&stage=${encodeURIComponent(stage)}&token=${encodeURIComponent(token)}`;\nconst DECISIONS = {\n  APPROVE: 'Approve',\n  APPROVE_WITH_CONDITIONS: 'Approve with conditions',\n  CHANGES_REQUIRED: 'Changes required',\n  REJECT: 'Reject',\n};\nconst OUTCOME = {\n  APPROVED: 'Approved',\n  APPROVED_WITH_CONDITIONS: 'Approved with conditions',\n  CHANGES_REQUIRED: 'Changes required – submit a new F04',\n  REJECTED: 'Rejected',\n};\n\nif (!SafeLab.verifyToken(secret, expId, stage, token)) {\n  return result(403, 'Invalid link', '<p>This approval link is not valid. Please use the link from the latest SafeLab email.</p>');\n}\nconst exp = rowsOf('Read EXPERIMENTS').find((r) => text(r.exp_id).toUpperCase() === expId.toUpperCase());\nif (!exp) return result(404, 'Experiment not found', `<p>${esc(expId)} does not exist in the EXPERIMENTS sheet.</p>`);\nif (!DECISIONS[decision]) {\n  return result(400, 'Choose a decision', `<p>Please <a href=\"${esc(pageUrl)}\">go back</a> and choose a decision.</p>`);\n}\nif ((decision === 'APPROVE_WITH_CONDITIONS' || decision === 'CHANGES_REQUIRED') && !comment) {\n  return result(400, 'Comment required',\n    `<p>“${esc(DECISIONS[decision])}” needs a comment describing the conditions or required changes. ` +\n    `Please <a href=\"${esc(pageUrl)}\">go back</a> and add it.</p>`);\n}\nconst next = SafeLab.nextState(exp, stage, decision);\nif (!next.ok) {\n  return result(409, 'Decision not recorded',\n    `<p>${esc(next.error)}. ${esc(exp.exp_id)} is currently <b>${esc(exp.status)}</b> – it may already have been decided.</p>`);\n}\n\n// ---- valid decision ----\nconst id = text(exp.exp_id);\nconst reviewerEmail = lower(exp.reviewer_email);\nconst actor = stage === 'PI' ? lower(cfg.PI_EMAIL) : reviewerEmail;\nconst approvalId = SafeLab.nextId('APR', year, rowsOf('Read APPROVALS').map((r) => r.approval_id));\nconst updated = { ...exp, status: next.status, current_stage: next.current_stage, updated_at: nowIso };\nconst isHigh = text(exp.inherent_level).toUpperCase() === 'HIGH';\nconst permitNote = isHigh\n  ? '<p style=\"color:#b91c1c\"><b>Reminder (HIGH risk):</b> PI approval is the final INTERNAL approval only. ' +\n    'External permits and institutional EHS approvals required by law must still be obtained before work starts.</p>'\n  : '';\nconst emails = [];\n\nif (next.status === 'PENDING_PI') {\n  const piToken = SafeLab.makeToken(secret, id, 'PI');\n  const url = `${baseUrl}/webhook/safelab-decision?exp=${encodeURIComponent(id)}&stage=PI&token=${encodeURIComponent(piToken)}`;\n  emails.push(mail(cfg.PI_EMAIL, `[SafeLab] FINAL APPROVAL – ${id} ${text(exp.title)}`,\n    '<h2>SAFELAB – FINAL APPROVAL</h2>' +\n    `<p>Dear ${esc(cfg.PI_NAME || 'PI')}, experiment <b>${esc(id)}</b> passed safety review and needs your final approval.</p>` +\n    `<p>Reviewer decision: <b>${esc(DECISIONS[decision])}</b> by ${esc(reviewerEmail)}` +\n    (comment ? `<br>Reviewer comment: ${esc(comment).replace(/\\r?\\n/g, '<br>')}` : '') + '</p>' +\n    `<p><a href=\"${esc(url)}\" style=\"display:inline-block;padding:10px 18px;background:#1d4ed8;color:#fff;` +\n    'text-decoration:none;border-radius:6px;font-weight:bold\">Open final approval page</a></p>' +\n    '<p style=\"color:#6b7280;font-size:12px\">Opening the page does not change anything; the decision is only recorded when you submit the form.</p>' +\n    permitNote +\n    SafeLab.experimentSummaryHtml(updated, null, null,\n      { exp_id: id, reviewer_decision: DECISIONS[decision], reviewer_comment: comment || '-' })));\n} else {\n  emails.push(mail([exp.leader_email, exp.submitted_by, reviewerEmail],\n    `[SafeLab] ${OUTCOME[next.status] || next.status} – ${id} ${text(exp.title)}`,\n    `<h2>${esc(id)}: ${esc(OUTCOME[next.status] || next.status)}</h2>` +\n    `<p>Decision by the ${stage === 'PI' ? esc(cfg.PI_NAME || 'PI') + ' (final approval)' : 'safety reviewer'}: ` +\n    `<b>${esc(DECISIONS[decision])}</b>` +\n    (comment ? `<br>Comment / conditions: ${esc(comment).replace(/\\r?\\n/g, '<br>')}` : '') + '</p>' +\n    (next.status === 'CHANGES_REQUIRED' || next.status === 'REJECTED'\n      ? `<p>To continue, address the comments and submit a new ${link(cfg.FORM_F04_URL, 'F04 form')}.</p>` : '') +\n    permitNote +\n    SafeLab.experimentSummaryHtml(updated, null, null, { exp_id: id })));\n}\n\nconst nextStep = next.status === 'PENDING_PI'\n  ? `It has been sent to ${esc(cfg.PI_NAME || 'the PI')} for final approval.`\n  : 'The experiment leader and reviewer have been notified by email.';\nreturn result(200, 'Decision recorded',\n  `<p><b>${esc(id)}</b> – ${esc(DECISIONS[decision])}. New status: <b>${esc(next.status)}</b>.</p><p>${nextStep}</p>` + permitNote,\n  {\n    experiments: [{ exp_id: id, status: next.status, current_stage: next.current_stage, updated_at: nowIso }],\n    approvals: [sheetRow({\n      approval_id: approvalId, exp_id: id, stage, reviewer_email: actor,\n      decision, comment, decided_at: nowIso,\n    })],\n    audit: [audit(actor, `${stage}_DECISION`, 'EXPERIMENTS', id,\n      `${decision} -> ${next.status}${comment ? ': ' + comment : ''}`)],\n    emails: emails.filter((e) => e.to),\n  });\n"
+      },
+      "id": "b922bb11-d6a4-43f5-af85-a320db687324"
+    },
+    {
+      "name": "Split EXPERIMENTS updates",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        -180
+      ],
+      "parameters": {
+        "fieldToSplitOut": "experiments",
+        "options": {}
+      },
+      "id": "1086f7a2-251d-4e05-a702-c7f33f51ad39"
+    },
+    {
+      "name": "Update EXPERIMENTS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1600,
+        -180
+      ],
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "EXPERIMENTS"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "exp_id"
+          ],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "71c1a127-a4b5-4380-a9b9-1759d5f923e3"
+    },
+    {
+      "name": "Split APPROVALS rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        -20
+      ],
+      "parameters": {
+        "fieldToSplitOut": "approvals",
+        "options": {}
+      },
+      "id": "e0fb278e-7453-4509-a236-94eb1c362295"
+    },
+    {
+      "name": "Append APPROVALS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1600,
+        -20
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "APPROVALS"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "ca2b339c-bbd2-4d1e-ac78-364cb2510c39"
+    },
+    {
+      "name": "Split audit rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        140
+      ],
+      "parameters": {
+        "fieldToSplitOut": "audit",
+        "options": {}
+      },
+      "id": "b2458ccb-1a31-472e-a4d3-8c1b14c63db0"
+    },
+    {
+      "name": "Append AUDIT_LOG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1600,
+        140
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "AUDIT_LOG"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "b8b61abc-fac9-4169-aa34-64ec5d3fa195"
+    },
+    {
+      "name": "Respond with result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1600,
+        300
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": "={{ $json.code }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "452cbb44-0f5e-4e5a-ae2b-87de4788dce2"
+    },
+    {
+      "name": "Split emails",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        460
+      ],
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {}
+      },
+      "id": "d138f098-8f57-420b-a39f-eef9ca82839a"
+    },
+    {
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1600,
+        460
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "__CRED_GMAIL__",
+          "name": "SafeLab Gmail"
+        }
+      },
+      "webhookId": "c8457b93-9882-4b3a-aa8f-c1cef67900e2",
+      "id": "d2e5b739-a43b-4ecd-a5b0-87e4d55e31de"
+    },
+    {
+      "name": "Build decision page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        700
+      ],
+      "parameters": {
+        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 07 GET: show the decision page. NEVER changes state (mail scanners prefetch links). ----\nconst page = (code, title, body) => [{ json: { code, html:\n  '<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">' +\n  '<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">' +\n  `<title>${esc(title)} – SafeLab</title><style>` +\n  'body{font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#111;background:#f9fafb;margin:0}' +\n  'main{max-width:860px;margin:0 auto;padding:16px}h1{font-size:22px}table{max-width:100%}' +\n  'fieldset{border:1px solid #d1d5db;border-radius:6px;margin:16px 0}label{display:block;margin:6px 0}' +\n  'textarea{width:100%;box-sizing:border-box;font:inherit}' +\n  'button{padding:10px 18px;background:#1d4ed8;color:#fff;border:0;border-radius:6px;font-size:15px;cursor:pointer}' +\n  '</style></head><body><main>' + `<h1>${esc(title)}</h1>${body}</main></body></html>` } }];\n\nconst q = $('GET decision page').first().json.query || {};\nconst expId = text(q.exp);\nconst stage = text(q.stage).toUpperCase();\nconst token = text(q.token);\n\nif (!SafeLab.verifyToken($env.SAFELAB_SECRET, expId, stage, token)) {\n  return page(403, 'Invalid link', '<p>This approval link is not valid. Please use the link from the latest SafeLab email.</p>');\n}\nconst exp = rowsOf('Read EXPERIMENTS').find((r) => text(r.exp_id).toUpperCase() === expId.toUpperCase());\nif (!exp) return page(404, 'Experiment not found', `<p>${esc(expId)} does not exist in the EXPERIMENTS sheet.</p>`);\n\nconst history = rowsOf('Read APPROVALS').filter((a) => text(a.exp_id).toUpperCase() === expId.toUpperCase());\nconst extra = { exp_id: exp.exp_id };\nhistory.forEach((a) => {\n  extra[`${text(a.stage).toLowerCase()}_decision`] = `${text(a.decision)} by ${text(a.reviewer_email)} (${text(a.decided_at)})`;\n  if (text(a.comment)) extra[`${text(a.stage).toLowerCase()}_comment`] = text(a.comment);\n});\nconst summary = SafeLab.experimentSummaryHtml(exp, null, null, extra);\n\nif (!SafeLab.nextState(exp, stage, 'APPROVE').ok) {\n  return page(409, `No decision needed – ${exp.exp_id}`,\n    `<p>This experiment is currently <b>${esc(exp.status)}</b>, so no ${esc(stage)} decision can be recorded with this link.</p>` + summary);\n}\n\nconst stageName = stage === 'PI' ? `Final approval – ${cfg.PI_NAME || 'PI'}` : 'Safety review';\nconst options = [\n  ['APPROVE', 'Approve'],\n  ['APPROVE_WITH_CONDITIONS', 'Approve with conditions (write the conditions below)'],\n  ['CHANGES_REQUIRED', 'Changes required (explain below)'],\n  ['REJECT', 'Reject'],\n].map(([v, label]) => `<label><input type=\"radio\" name=\"decision\" value=\"${v}\" required> ${esc(label)}</label>`).join('');\nconst form =\n  // relative action -> POST /webhook/safelab-decision (same path as this page)\n  '<form method=\"POST\" action=\"safelab-decision\">' +\n  `<input type=\"hidden\" name=\"exp\" value=\"${esc(expId)}\">` +\n  `<input type=\"hidden\" name=\"stage\" value=\"${esc(stage)}\">` +\n  `<input type=\"hidden\" name=\"token\" value=\"${esc(token)}\">` +\n  `<fieldset><legend><b>Your decision</b></legend>${options}</fieldset>` +\n  '<label><b>Comment / conditions</b> (required for conditions or changes)<br>' +\n  '<textarea name=\"comment\" rows=\"5\"></textarea></label>' +\n  '<p><button type=\"submit\">Submit decision</button></p></form>';\n\nconst reminder = text(exp.inherent_level).toUpperCase() === 'HIGH'\n  ? '<p style=\"color:#b91c1c\"><b>HIGH risk:</b> PI approval is the final INTERNAL approval only; external permits / EHS approvals required by law are still needed.</p>'\n  : '';\nreturn page(200, `${stageName}: ${exp.exp_id}`, reminder + summary + form);\n"
+      },
+      "id": "e7e058a2-3d4e-4839-ade1-a9b699eb82e6"
+    },
+    {
+      "name": "Respond with page",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1360,
+        700
+      ],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": "={{ $json.code }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "05a1ed2c-6ca7-451d-a477-2feae870134c"
+    }
+  ],
+  "connections": {
+    "GET decision page": {
+      "main": [
+        [
+          {
+            "node": "Read CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST decision": {
+      "main": [
+        [
+          {
+            "node": "Read CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CONFIG": {
+      "main": [
+        [
+          {
+            "node": "Read EXPERIMENTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read EXPERIMENTS": {
+      "main": [
+        [
+          {
+            "node": "Read APPROVALS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read APPROVALS": {
+      "main": [
+        [
+          {
+            "node": "Is POST?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is POST?": {
+      "main": [
+        [
+          {
+            "node": "Apply decision",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build decision page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply decision": {
+      "main": [
+        [
+          {
+            "node": "Split EXPERIMENTS updates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split APPROVALS rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split audit rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split EXPERIMENTS updates": {
+      "main": [
+        [
+          {
+            "node": "Update EXPERIMENTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split APPROVALS rows": {
+      "main": [
+        [
+          {
+            "node": "Append APPROVALS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split audit rows": {
+      "main": [
+        [
+          {
+            "node": "Append AUDIT_LOG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split emails": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build decision page": {
+      "main": [
+        [
+          {
+            "node": "Respond with page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": []
+}

@@ -1,0 +1,770 @@
+{
+  "id": "safelab06submit",
+  "name": "SafeLab 06 Experiment Submit",
+  "active": false,
+  "nodes": [
+    {
+      "name": "F04 row added",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "F04_RESPONSES"
+        },
+        "event": "rowAdded",
+        "options": {
+          "valueRender": "UNFORMATTED_VALUE",
+          "dateTimeRenderOption": "FORMATTED_STRING"
+        }
+      },
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "__CRED_SHEETS_TRIGGER__",
+          "name": "SafeLab Sheets Trigger"
+        }
+      },
+      "id": "de2eadb0-2d0f-4ee6-a0bd-a14b71df8ffd"
+    },
+    {
+      "name": "Read CONFIG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CONFIG"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "cfa0bac6-27d4-40aa-a300-48f532304814"
+    },
+    {
+      "name": "Read PEOPLE",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "PEOPLE"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "c682ea21-ebaa-43b3-a730-68d2a18b8d1a"
+    },
+    {
+      "name": "Read TRAINING_TYPES",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "TRAINING_TYPES"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "63bcb25a-9367-470b-a7aa-b102279eff3f"
+    },
+    {
+      "name": "Read TRAINING_RECORDS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "TRAINING_RECORDS"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "6f62714f-77ed-4188-a923-89d501422ce1"
+    },
+    {
+      "name": "Read SOP_MASTER",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1100,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SOP_MASTER"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "f13ca24d-a5d3-4cd3-abb4-2428288a2c2e"
+    },
+    {
+      "name": "Read SOP_ACK",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1320,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SOP_ACK"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "24593dc1-e53b-4488-ace7-4b37cfc5213d"
+    },
+    {
+      "name": "Read EQUIPMENT",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1540,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "EQUIPMENT"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "8d7e0b3a-3066-4024-a990-6374f4e32342"
+    },
+    {
+      "name": "Read RISK_RULES",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1760,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "RISK_RULES"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "b909264d-457b-4acb-aea5-ce533a9693d8"
+    },
+    {
+      "name": "Read VN_CHEMICAL_REGISTER",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1980,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "VN_CHEMICAL_REGISTER"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "6151fadd-2215-4639-a9de-4d95b7408d27"
+    },
+    {
+      "name": "Read EXPERIMENTS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2200,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "EXPERIMENTS"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "aec687c7-2741-42ef-a542-f7a07f2f5657"
+    },
+    {
+      "name": "Assess risk + compliance",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2420,
+        300
+      ],
+      "parameters": {
+        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 06 Experiment submit: F04 row -> risk + compliance -> EXPERIMENTS/CHEMICALS, route to reviewer ----\nconst secret = $env.SAFELAB_SECRET;\nif (!secret) throw new Error('SAFELAB_SECRET is not set in the n8n environment (needed for approval links)');\nconst baseUrl = text($env.SAFELAB_PUBLIC_URL || 'http://localhost:5678').replace(/\\/+$/, '');\n\nconst data = {\n  people: rowsOf('Read PEOPLE'),\n  trainingTypes: rowsOf('Read TRAINING_TYPES'),\n  trainingRecords: rowsOf('Read TRAINING_RECORDS'),\n  sops: rowsOf('Read SOP_MASTER'),\n  sopAcks: rowsOf('Read SOP_ACK'),\n  equipment: rowsOf('Read EQUIPMENT'),\n};\nconst riskRules = rowsOf('Read RISK_RULES');\nconst chemRegister = rowsOf('Read VN_CHEMICAL_REGISTER');\nconst expIds = rowsOf('Read EXPERIMENTS').map((r) => r.exp_id);\nconst ROLE = { SUPERVISOR_EMAIL: 'Supervisor', SAFETY_REVIEWER_EMAIL: 'Safety reviewer', EHS_REVIEWER_EMAIL: 'EHS reviewer' };\nconst yesNo = (b) => (b ? 'YES' : 'NO');\nconst checkList = (checks) => '<ul>' + checks.map((c) =>\n  `<li><b>${esc(c.status)} – ${esc(c.label)}</b>: ${esc(c.detail)}</li>`).join('') + '</ul>';\nconst button = (url, label) => `<p><a href=\"${esc(url)}\" style=\"display:inline-block;padding:10px 18px;` +\n  `background:#1d4ed8;color:#fff;text-decoration:none;border-radius:6px;font-weight:bold\">${esc(label)}</a></p>`;\n\nconst experiments = [];\nconst chemicals = [];\nconst auditRows = [];\nconst emails = [];\n\nfor (const row of rowsOf('F04 row added')) {\n  const exp = SafeLab.normalizeExperiment(row);\n  const expId = SafeLab.nextId('EXP', year, expIds);\n  expIds.push(expId);\n  const risk = SafeLab.assessRisk(exp, riskRules, chemRegister);\n  const compliance = SafeLab.checkCompliance(exp, risk, data, today);\n  const passed = compliance.ok;\n  const reviewerKey = SafeLab.reviewerKeyFor(risk.route_level);\n  const reviewer = passed ? lower(cfg[reviewerKey] || cfg.SAFETY_COORDINATOR_EMAIL) : '';\n  const status = passed ? 'PENDING_REVIEW' : 'REJECTED_INCOMPLETE';\n  const leader = exp.leader_email || exp.submitted_by;\n\n  experiments.push(sheetRow(SafeLab.toExperimentRow(exp, risk, compliance, {\n    exp_id: expId,\n    reviewer_email: reviewer,\n    current_stage: passed ? 'REVIEW' : '',\n    status,\n    submitted_by: exp.submitted_by,\n    submitted_at: exp.submitted_at || nowIso,\n    updated_at: nowIso,\n  })));\n  risk.chemicals.forEach((c) => chemicals.push(sheetRow({\n    exp_id: expId,\n    cas: c.cas,\n    name: c.name,\n    quantity: c.quantity === null ? '' : c.quantity,\n    unit: c.unit,\n    registered: yesNo(c.registered),\n    vn_listed: yesNo(c.vn_listed),\n    hazardous: yesNo(c.hazardous),\n    special_control: yesNo(c.special_control),\n    flags: (c.flags || []).join('; '),\n    recorded_at: nowIso,\n  })));\n\n  const summary = SafeLab.experimentSummaryHtml(exp, risk, compliance, { exp_id: expId, status });\n  const subjectTail = `${expId} ${exp.title}`;\n  const failed = compliance.checks.filter((c) => c.status === 'FAIL');\n  const warned = compliance.checks.filter((c) => c.status === 'WARN');\n\n  if (!passed) {\n    emails.push(mail([exp.submitted_by, leader], `[SafeLab] Submission incomplete – ${subjectTail}`,\n      `<h2>Experiment submission not accepted: ${esc(expId)}</h2>` +\n      '<p>Your Experimental Safety Approval (F04) failed the automatic checks below, so it was <b>not</b> sent to a reviewer.</p>' +\n      checkList(failed) + (warned.length ? '<p>Also check these warnings:</p>' + checkList(warned) : '') +\n      `<p>Fix the items (register, record training, acknowledge SOPs, …) and submit a new ${link(cfg.FORM_F04_URL, 'F04 form')}.</p>` +\n      summary));\n    auditRows.push(audit(exp.submitted_by, 'EXPERIMENT_REJECTED_INCOMPLETE', 'EXPERIMENTS', expId,\n      `failed checks: ${failed.map((c) => c.id).join(', ')}`));\n    continue;\n  }\n\n  const token = SafeLab.makeToken(secret, expId, 'REVIEW');\n  const url = `${baseUrl}/webhook/safelab-decision?exp=${encodeURIComponent(expId)}&stage=REVIEW&token=${encodeURIComponent(token)}`;\n  emails.push(mail(reviewer, `[SafeLab] Review required – ${subjectTail} (${risk.route_level})`,\n    `<h2>Safety review required: ${esc(expId)}</h2>` +\n    `<p>A new experiment passed the automatic checks and needs your review as <b>${esc(ROLE[reviewerKey])}</b> ` +\n    `(inherent risk level <b>${esc(risk.inherent_level)}</b>). After your approval it goes to ` +\n    `${esc(cfg.PI_NAME || 'the PI')} for final approval.</p>` +\n    button(url, 'Open decision page') +\n    '<p style=\"color:#6b7280;font-size:12px\">Opening the page does not change anything; the decision is only recorded when you submit the form.</p>' +\n    summary));\n  emails.push(mail([leader, exp.submitted_by], `[SafeLab] Received – ${subjectTail}`,\n    `<h2>Experiment received: ${esc(expId)}</h2>` +\n    `<p>Title: <b>${esc(exp.title)}</b><br>Inherent risk level: <b>${esc(risk.inherent_level)}</b><br>` +\n    `Residual risk level: <b>${esc(risk.residual_level || '-')}</b></p>` +\n    `<p><b>Next step:</b> review by the ${esc(ROLE[reviewerKey])} (${esc(reviewer)}), then final approval by ` +\n    `${esc(cfg.PI_NAME || 'the PI')}. Do not start the experiment before final approval.</p>` +\n    (warned.length ? '<p>Warnings to address:</p>' + checkList(warned) : '') +\n    (risk.legal_flags.length ? `<p>Legal notes:<br>${risk.legal_flags.map(esc).join('<br>')}</p>` : '')));\n  auditRows.push(audit(exp.submitted_by, 'EXPERIMENT_SUBMITTED', 'EXPERIMENTS', expId,\n    `inherent ${risk.inherent_level}, residual ${risk.residual_level || '-'}; sent to ${reviewerKey} ${reviewer}`));\n}\n\nreturn [{ json: { experiments, chemicals, audit: auditRows, emails: emails.filter((e) => e.to) } }];\n"
+      },
+      "id": "1b90b302-989e-43c4-a69d-0c849b7f382c"
+    },
+    {
+      "name": "Split EXPERIMENTS rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        60
+      ],
+      "parameters": {
+        "fieldToSplitOut": "experiments",
+        "options": {}
+      },
+      "id": "a592fb93-9db4-4573-a511-52699ddf1e4f"
+    },
+    {
+      "name": "Append EXPERIMENTS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2900,
+        60
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "EXPERIMENTS"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "f8bb2bf3-cc55-4774-a594-3c98d96941aa"
+    },
+    {
+      "name": "Split CHEMICALS rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        220
+      ],
+      "parameters": {
+        "fieldToSplitOut": "chemicals",
+        "options": {}
+      },
+      "id": "7aeefbeb-4171-4761-ab51-3267e6f2e65e"
+    },
+    {
+      "name": "Append CHEMICALS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2900,
+        220
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CHEMICALS"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "31f76c72-2d73-498f-a104-a8136e3584b0"
+    },
+    {
+      "name": "Split audit rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        380
+      ],
+      "parameters": {
+        "fieldToSplitOut": "audit",
+        "options": {}
+      },
+      "id": "9ae1596f-f289-4dcc-a934-047ff650c785"
+    },
+    {
+      "name": "Append AUDIT_LOG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2900,
+        380
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "AUDIT_LOG"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "dd88d0fb-4c5b-4fc4-a1f1-f87901c9dbfd"
+    },
+    {
+      "name": "Split emails",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2660,
+        540
+      ],
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {}
+      },
+      "id": "1301e811-065c-4528-a246-e7ff169ea13c"
+    },
+    {
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2900,
+        540
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "__CRED_GMAIL__",
+          "name": "SafeLab Gmail"
+        }
+      },
+      "webhookId": "cff6d581-f4fd-4038-a6d2-46312a21b673",
+      "id": "a4ff2673-5dea-43a6-adc0-22f1ce6636ec"
+    }
+  ],
+  "connections": {
+    "F04 row added": {
+      "main": [
+        [
+          {
+            "node": "Read CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CONFIG": {
+      "main": [
+        [
+          {
+            "node": "Read PEOPLE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read PEOPLE": {
+      "main": [
+        [
+          {
+            "node": "Read TRAINING_TYPES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read TRAINING_TYPES": {
+      "main": [
+        [
+          {
+            "node": "Read TRAINING_RECORDS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read TRAINING_RECORDS": {
+      "main": [
+        [
+          {
+            "node": "Read SOP_MASTER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read SOP_MASTER": {
+      "main": [
+        [
+          {
+            "node": "Read SOP_ACK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read SOP_ACK": {
+      "main": [
+        [
+          {
+            "node": "Read EQUIPMENT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read EQUIPMENT": {
+      "main": [
+        [
+          {
+            "node": "Read RISK_RULES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read RISK_RULES": {
+      "main": [
+        [
+          {
+            "node": "Read VN_CHEMICAL_REGISTER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read VN_CHEMICAL_REGISTER": {
+      "main": [
+        [
+          {
+            "node": "Read EXPERIMENTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read EXPERIMENTS": {
+      "main": [
+        [
+          {
+            "node": "Assess risk + compliance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assess risk + compliance": {
+      "main": [
+        [
+          {
+            "node": "Split EXPERIMENTS rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split CHEMICALS rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split audit rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split EXPERIMENTS rows": {
+      "main": [
+        [
+          {
+            "node": "Append EXPERIMENTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split CHEMICALS rows": {
+      "main": [
+        [
+          {
+            "node": "Append CHEMICALS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split audit rows": {
+      "main": [
+        [
+          {
+            "node": "Append AUDIT_LOG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split emails": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": []
+}

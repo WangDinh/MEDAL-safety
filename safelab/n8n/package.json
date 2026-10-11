@@ -1,0 +1,8 @@
+{
+  "name": "safelab-n8n",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/",
+    "build": "node build.mjs"
+  }
+}

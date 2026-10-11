@@ -1,0 +1,403 @@
+{
+  "id": "safelab02training",
+  "name": "SafeLab 02 Training Record",
+  "active": false,
+  "nodes": [
+    {
+      "name": "F02 row added",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "F02_RESPONSES"
+        },
+        "event": "rowAdded",
+        "options": {
+          "valueRender": "UNFORMATTED_VALUE",
+          "dateTimeRenderOption": "FORMATTED_STRING"
+        }
+      },
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "__CRED_SHEETS_TRIGGER__",
+          "name": "SafeLab Sheets Trigger"
+        }
+      },
+      "id": "49bc9820-83fb-45aa-af34-2719eda84037"
+    },
+    {
+      "name": "Read CONFIG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CONFIG"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "fa7520ce-f486-44e3-afce-092437ee70a7"
+    },
+    {
+      "name": "Read TRAINING_TYPES",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "TRAINING_TYPES"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "7571cbff-7439-4e2a-a740-023084cbfa99"
+    },
+    {
+      "name": "Read TRAINING_RECORDS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "TRAINING_RECORDS"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "e696b06e-bea4-4aeb-a92f-5a1a62d40f00"
+    },
+    {
+      "name": "Build training record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 02 Training record: F02 row -> TRAINING_RECORDS row, confirmation email ----\nconst types = {};\nrowsOf('Read TRAINING_TYPES').forEach((t) => { if (text(t.training_code)) types[text(t.training_code).toUpperCase()] = t; });\nconst ids = rowsOf('Read TRAINING_RECORDS').map((r) => r.record_id);\n\nconst records = [];\nconst auditRows = [];\nconst emails = [];\n\nfor (const r of rowsOf('F02 row added')) {\n  const email = lower(r['Email Address']);\n  if (!email) continue;\n  // Dropdown value is \"<training_code> — <name>\"\n  const code = text(r['Training']).split(/\\s+[—–-]\\s+/)[0].trim().toUpperCase();\n  const type = types[code];\n  const completedOn = SafeLab.parseDate(r['Completion date']);\n  const expiresOn = type ? SafeLab.trainingExpiry(completedOn, type.validity_months) : '';\n  const id = SafeLab.nextId('TR', year, ids);\n  ids.push(id);\n\n  records.push(sheetRow({\n    record_id: id,\n    email,\n    training_code: code,\n    completed_on: completedOn,\n    expires_on: expiresOn,\n    quiz_score: text(r['Quiz score (%)']),\n    evidence_url: text(r['Evidence link']),\n    recorded_at: nowIso,\n  }));\n  auditRows.push(audit(email, 'TRAINING_RECORDED', 'TRAINING_RECORDS', id,\n    `${code} completed ${completedOn || '?'}, expires ${expiresOn || 'never'}`));\n\n  const problems = [];\n  if (!type) problems.push(`Training code \"${code}\" is not in TRAINING_TYPES – the safety coordinator will check it.`);\n  if (!completedOn) problems.push('The completion date could not be read.');\n  emails.push(mail(email, `[SafeLab] Training recorded – ${code} (${id})`,\n    `<h2>Training recorded: ${esc(code)}${type ? ' – ' + esc(type.name) : ''}</h2>` +\n    `<p>Record ID: <b>${esc(id)}</b><br>Completed on: <b>${esc(completedOn || '?')}</b><br>` +\n    `Valid until: <b>${esc(expiresOn || (type ? 'does not expire' : 'unknown'))}</b></p>` +\n    (problems.length ? `<p style=\"color:#b45309\"><b>Please check:</b><br>${problems.map(esc).join('<br>')}</p>` : '') +\n    '<p>You will get a reminder before this training expires.</p>'));\n}\n\nreturn [{ json: { records, audit: auditRows, emails: emails.filter((e) => e.to) } }];\n"
+      },
+      "id": "f1f9d175-b6eb-4e11-a74e-9b3f2e6f1599"
+    },
+    {
+      "name": "Split TRAINING_RECORDS rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        140
+      ],
+      "parameters": {
+        "fieldToSplitOut": "records",
+        "options": {}
+      },
+      "id": "7d29fed7-520a-422c-a0d5-43fec44b0ed3"
+    },
+    {
+      "name": "Append TRAINING_RECORDS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        140
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "TRAINING_RECORDS"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "f16aa34f-4ea3-40f1-afd7-9f0cca728e8e"
+    },
+    {
+      "name": "Split audit rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "fieldToSplitOut": "audit",
+        "options": {}
+      },
+      "id": "83fb2526-556a-4cee-a287-50193e1f2aa3"
+    },
+    {
+      "name": "Append AUDIT_LOG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        300
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "AUDIT_LOG"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "ebe72999-96d0-4a70-a494-e588278f027f"
+    },
+    {
+      "name": "Split emails",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        460
+      ],
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {}
+      },
+      "id": "b172503f-7c53-4b01-af50-f90f8ac7b4ba"
+    },
+    {
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1360,
+        460
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "__CRED_GMAIL__",
+          "name": "SafeLab Gmail"
+        }
+      },
+      "webhookId": "0780c22b-beca-4ed5-ab2d-c25fde178287",
+      "id": "aad32ef2-a116-4fde-aceb-8d7c92af4953"
+    }
+  ],
+  "connections": {
+    "F02 row added": {
+      "main": [
+        [
+          {
+            "node": "Read CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CONFIG": {
+      "main": [
+        [
+          {
+            "node": "Read TRAINING_TYPES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read TRAINING_TYPES": {
+      "main": [
+        [
+          {
+            "node": "Read TRAINING_RECORDS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read TRAINING_RECORDS": {
+      "main": [
+        [
+          {
+            "node": "Build training record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build training record": {
+      "main": [
+        [
+          {
+            "node": "Split TRAINING_RECORDS rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split audit rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split TRAINING_RECORDS rows": {
+      "main": [
+        [
+          {
+            "node": "Append TRAINING_RECORDS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split audit rows": {
+      "main": [
+        [
+          {
+            "node": "Append AUDIT_LOG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split emails": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": []
+}

@@ -1,0 +1,520 @@
+{
+  "id": "safelab09incident",
+  "name": "SafeLab 09 Incident and CAPA",
+  "active": false,
+  "nodes": [
+    {
+      "name": "F06 row added",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "F06_RESPONSES"
+        },
+        "event": "rowAdded",
+        "options": {
+          "valueRender": "UNFORMATTED_VALUE",
+          "dateTimeRenderOption": "FORMATTED_STRING"
+        }
+      },
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "__CRED_SHEETS_TRIGGER__",
+          "name": "SafeLab Sheets Trigger"
+        }
+      },
+      "id": "634573e0-5102-407d-ad56-7d5c5ca26411"
+    },
+    {
+      "name": "F07 row added",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        400
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "F07_RESPONSES"
+        },
+        "event": "rowAdded",
+        "options": {
+          "valueRender": "UNFORMATTED_VALUE",
+          "dateTimeRenderOption": "FORMATTED_STRING"
+        }
+      },
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "__CRED_SHEETS_TRIGGER__",
+          "name": "SafeLab Sheets Trigger"
+        }
+      },
+      "id": "08f58b0f-5e09-47dd-a844-806c1a8019c5"
+    },
+    {
+      "name": "Read CONFIG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CONFIG"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "6c85f224-76d8-43d8-a8d6-f249c3aa4965"
+    },
+    {
+      "name": "Read INCIDENTS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "INCIDENTS"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "58538a5c-b8e0-4b9c-a801-53b27246e061"
+    },
+    {
+      "name": "Read CAPA",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CAPA"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "61bb37f8-ca11-4226-a923-0ac53fc843a1"
+    },
+    {
+      "name": "Build incident + CAPA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 09 Incident / CAPA: F06 incident -> INCIDENTS + CAPA; F07 inspection -> CAPA ----\nconst coordinator = lower(cfg.SAFETY_COORDINATOR_EMAIL);\nconst incidentIds = rowsOf('Read INCIDENTS').map((r) => r.incident_id);\nconst capaIds = rowsOf('Read CAPA').map((r) => r.capa_id);\nconst triggerRows = (node) => ($(node).isExecuted ? rowsOf(node) : []); // only one trigger runs per execution\nconst in14Days = now.plus({ days: 14 }).toFormat('yyyy-MM-dd');\nconst table = (pairs) => '<table style=\"border-collapse:collapse\">' + pairs.map(([k, v]) =>\n  `<tr><th style=\"text-align:left;vertical-align:top;padding:4px 8px;border:1px solid #ddd;background:#f3f4f6\">${esc(k)}</th>` +\n  `<td style=\"padding:4px 8px;border:1px solid #ddd\">${esc(v).replace(/\\r?\\n/g, '<br>')}</td></tr>`).join('') + '</table>';\n\nconst incidents = [];\nconst capas = [];\nconst auditRows = [];\nconst emails = [];\n\n// ---- F06 incident / near miss ----\nfor (const r of triggerRows('F06 row added')) {\n  const reporter = lower(r['Email Address']);\n  const incidentId = SafeLab.nextId('INC', year, incidentIds);\n  incidentIds.push(incidentId);\n  const injured = text(r['Was anyone injured?']).toUpperCase() === 'YES';\n  const severity = text(r['Severity']).toUpperCase();\n  const incident = {\n    incident_id: incidentId,\n    type: text(r['Type']),\n    occurred_at: text(r['Date and time of event']),\n    lab: text(r['Lab / room']),\n    reporter_email: reporter,\n    description: text(r['What happened?']),\n    injury: injured ? 'YES' : 'NO',\n    severity,\n    immediate_action: text(r['Immediate action taken']),\n    related_exp_id: text(r['Related experiment ID']).toUpperCase(),\n    status: 'OPEN',\n    reported_at: nowIso,\n  };\n  incidents.push(sheetRow(incident));\n\n  const capaId = SafeLab.nextId('CAPA', year, capaIds);\n  capaIds.push(capaId);\n  const capa = {\n    capa_id: capaId, source: 'INCIDENT', source_id: incidentId,\n    action: `Investigate ${incidentId} and define corrective action`,\n    owner_email: coordinator, due_date: in14Days, status: 'OPEN', created_at: nowIso, closed_at: '',\n  };\n  capas.push(sheetRow(capa));\n\n  const details = table([\n    ['Incident ID', incidentId], ['Type', incident.type], ['Occurred at', incident.occurred_at], ['Lab / room', incident.lab],\n    ['Reported by', reporter], ['Injury', incident.injury], ['Severity', severity], ['What happened', incident.description],\n    ['Immediate action', incident.immediate_action || '-'], ['Related experiment', incident.related_exp_id || '-'],\n    ['CAPA created', `${capaId}: ${capa.action} (due ${in14Days})`],\n  ]);\n  emails.push(mail(coordinator, `[SafeLab] Incident reported – ${incidentId} (${incident.type}, ${severity})`,\n    `<h2>New ${esc(incident.type || 'incident')} report: ${esc(incidentId)}</h2>` + details +\n    `<p>A CAPA (${esc(capaId)}) has been assigned to you, due ${esc(in14Days)}.</p>`));\n  if (injured || severity === 'HIGH') {\n    emails.push(mail(cfg.PI_EMAIL, `[SafeLab] [URGENT] ${injured ? 'Injury' : 'HIGH severity'} incident – ${incidentId} ${incident.lab}`,\n      `<h2 style=\"color:#b91c1c\">URGENT: ${esc(injured ? 'injury reported' : 'HIGH severity incident')} – ${esc(incidentId)}</h2>` +\n      details));\n  }\n  auditRows.push(audit(reporter, 'INCIDENT_REPORTED', 'INCIDENTS', incidentId, `${incident.type}, ${severity}, injury ${incident.injury}, ${incident.lab}`));\n  auditRows.push(audit('system', 'CAPA_CREATED', 'CAPA', capaId, `from ${incidentId}, owner ${coordinator}, due ${in14Days}`));\n}\n\n// ---- F07 safety inspection ----\nfor (const r of triggerRows('F07 row added')) {\n  const inspector = lower(r['Email Address']);\n  const lab = text(r['Lab / room']);\n  const inspectionDate = SafeLab.parseDate(r['Inspection date']) || text(r['Inspection date']);\n  const findings = text(r['Findings']);\n  const action = text(r['Corrective action required']);\n  if (!action) {\n    auditRows.push(audit(inspector, 'INSPECTION_RECORDED', 'F07_RESPONSES', `${lab} ${inspectionDate}`,\n      `no corrective action; findings: ${findings}`));\n    continue;\n  }\n  const capaId = SafeLab.nextId('CAPA', year, capaIds);\n  capaIds.push(capaId);\n  const owner = lower(r['Action owner email']) || coordinator;\n  const due = SafeLab.parseDate(r['Due date']);\n  capas.push(sheetRow({\n    capa_id: capaId, source: 'INSPECTION', source_id: `${lab} ${inspectionDate}`,\n    action, owner_email: owner, due_date: due, status: 'OPEN', created_at: nowIso, closed_at: '',\n  }));\n  emails.push(mail([owner, coordinator], `[SafeLab] Corrective action assigned – ${capaId} (${lab})`,\n    `<h2>Corrective action assigned: ${esc(capaId)}</h2>` +\n    table([['Lab / room', lab], ['Inspection date', inspectionDate], ['Inspected by', inspector], ['Findings', findings],\n      ['Corrective action', action], ['Owner', owner], ['Due date', due || 'not set']]) +\n    '<p>Please complete the action and inform the safety coordinator so the CAPA can be closed.</p>'));\n  auditRows.push(audit(inspector, 'CAPA_CREATED', 'CAPA', capaId, `inspection ${lab} ${inspectionDate}, owner ${owner}, due ${due || '-'}`));\n}\n\nreturn [{ json: { incidents, capas, audit: auditRows, emails: emails.filter((e) => e.to) } }];\n"
+      },
+      "id": "1cf6e987-63ef-48bf-a40e-3f067cc26d67"
+    },
+    {
+      "name": "Split INCIDENTS rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        60
+      ],
+      "parameters": {
+        "fieldToSplitOut": "incidents",
+        "options": {}
+      },
+      "id": "0597f907-1608-4377-ad11-399bf77c5eda"
+    },
+    {
+      "name": "Append INCIDENTS",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        60
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "INCIDENTS"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "2291d427-1c5f-4dae-a953-06ec49600e66"
+    },
+    {
+      "name": "Split CAPA rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        220
+      ],
+      "parameters": {
+        "fieldToSplitOut": "capas",
+        "options": {}
+      },
+      "id": "3db6b805-73d9-4058-a5da-4c50dd624e90"
+    },
+    {
+      "name": "Append CAPA",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        220
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CAPA"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "dc94dbd6-5259-4aaa-a438-ba5b24398f80"
+    },
+    {
+      "name": "Split audit rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        380
+      ],
+      "parameters": {
+        "fieldToSplitOut": "audit",
+        "options": {}
+      },
+      "id": "0ee52033-436f-4fc0-adf8-9a2d2be36e2a"
+    },
+    {
+      "name": "Append AUDIT_LOG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        380
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "AUDIT_LOG"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "24396537-3bd4-49c7-affc-8d724eea9e16"
+    },
+    {
+      "name": "Split emails",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        540
+      ],
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {}
+      },
+      "id": "a01cc8e2-c20a-4d59-a4da-c1c5d5d652c1"
+    },
+    {
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1360,
+        540
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "__CRED_GMAIL__",
+          "name": "SafeLab Gmail"
+        }
+      },
+      "webhookId": "ac24c48a-18bb-479f-a817-9af491d42736",
+      "id": "8f8548e2-d90c-4741-a1a6-d5380eb475e3"
+    }
+  ],
+  "connections": {
+    "F06 row added": {
+      "main": [
+        [
+          {
+            "node": "Read CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "F07 row added": {
+      "main": [
+        [
+          {
+            "node": "Read CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CONFIG": {
+      "main": [
+        [
+          {
+            "node": "Read INCIDENTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read INCIDENTS": {
+      "main": [
+        [
+          {
+            "node": "Read CAPA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CAPA": {
+      "main": [
+        [
+          {
+            "node": "Build incident + CAPA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build incident + CAPA": {
+      "main": [
+        [
+          {
+            "node": "Split INCIDENTS rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split CAPA rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split audit rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split INCIDENTS rows": {
+      "main": [
+        [
+          {
+            "node": "Append INCIDENTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split CAPA rows": {
+      "main": [
+        [
+          {
+            "node": "Append CAPA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split audit rows": {
+      "main": [
+        [
+          {
+            "node": "Append AUDIT_LOG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split emails": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": []
+}

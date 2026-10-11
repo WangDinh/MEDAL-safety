@@ -1,0 +1,26 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:${N8N_VERSION:-latest}
+    container_name: safelab-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=${SAFELAB_PUBLIC_URL:-http://localhost:5678}/
+      - GENERIC_TIMEZONE=Asia/Ho_Chi_Minh
+      - TZ=Asia/Ho_Chi_Minh
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
+      - SAFELAB_SECRET=${SAFELAB_SECRET:?set SAFELAB_SECRET in .env}
+      - SAFELAB_PUBLIC_URL=${SAFELAB_PUBLIC_URL:-http://localhost:5678}
+      # SafeLab Code nodes use crypto (approval-link tokens) and $env
+      - NODE_FUNCTION_ALLOW_BUILTIN=crypto
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows/dist:/workflows:ro
+
+volumes:
+  n8n_data:

@@ -1,0 +1,403 @@
+{
+  "id": "safelab05sopack",
+  "name": "SafeLab 05 SOP Acknowledgement",
+  "active": false,
+  "nodes": [
+    {
+      "name": "F03 row added",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "F03_RESPONSES"
+        },
+        "event": "rowAdded",
+        "options": {
+          "valueRender": "UNFORMATTED_VALUE",
+          "dateTimeRenderOption": "FORMATTED_STRING"
+        }
+      },
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "__CRED_SHEETS_TRIGGER__",
+          "name": "SafeLab Sheets Trigger"
+        }
+      },
+      "id": "bf58c716-81d9-4a4c-a485-9d9fcf8b66f2"
+    },
+    {
+      "name": "Read CONFIG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "CONFIG"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "8e61c9f7-66ad-4aa2-a085-ee88edbd1312"
+    },
+    {
+      "name": "Read SOP_MASTER",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SOP_MASTER"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "b403fbb6-630a-4212-a43c-b07e5346bfad"
+    },
+    {
+      "name": "Read SOP_ACK",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SOP_ACK"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "executeOnce": true,
+      "alwaysOutputData": true,
+      "id": "b3302d2b-1acf-4501-a425-02e4316e744c"
+    },
+    {
+      "name": "Build SOP acknowledgement",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ],
+      "parameters": {
+        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 05 SOP acknowledgement: F03 row -> SOP_ACK row for the CURRENT SOP version ----\nconst sops = {};\nrowsOf('Read SOP_MASTER').forEach((s) => { if (text(s.sop_id)) sops[text(s.sop_id).toUpperCase()] = s; });\nconst ids = rowsOf('Read SOP_ACK').map((r) => r.ack_id);\n\nconst acks = [];\nconst auditRows = [];\nconst emails = [];\n\nfor (const r of rowsOf('F03 row added')) {\n  const email = lower(r['Email Address']);\n  if (!email) continue;\n  // Dropdown value is \"<sop_id> — <title>\"\n  const sopId = text(r['SOP']).split(/\\s+[—–-]\\s+/)[0].trim().toUpperCase();\n  const sop = sops[sopId];\n  const problem = !sop ? `${sopId || '(blank)'} is not in SOP_MASTER`\n    : text(sop.status).toUpperCase() !== 'ACTIVE' ? `${sopId} is not ACTIVE (${text(sop.status) || 'blank'})`\n    : !text(r['Acknowledgement']) ? 'the acknowledgement box was not ticked' : '';\n\n  if (problem) {\n    auditRows.push(audit(email, 'SOP_ACK_REJECTED', 'SOP_ACK', sopId, problem));\n    emails.push(mail(email, `[SafeLab] SOP acknowledgement not recorded – ${sopId}`,\n      `<h2>SOP acknowledgement not recorded</h2><p>Your acknowledgement of <b>${esc(sopId)}</b> could not be recorded: ` +\n      `${esc(problem)}.</p><p>Please contact the safety coordinator or submit the ` +\n      `${link(cfg.FORM_F03_URL, 'SOP Acknowledgement form (F03)')} again.</p>`));\n    continue;\n  }\n\n  const id = SafeLab.nextId('ACK', year, ids);\n  ids.push(id);\n  acks.push(sheetRow({ ack_id: id, email, sop_id: sopId, version: sop.version, acknowledged_at: nowIso }));\n  auditRows.push(audit(email, 'SOP_ACKNOWLEDGED', 'SOP_ACK', id, `${sopId} v${text(sop.version)}`));\n}\n\nreturn [{ json: { acks, audit: auditRows, emails: emails.filter((e) => e.to) } }];\n"
+      },
+      "id": "e566cfd2-2072-4f4e-a902-4048d0e8045a"
+    },
+    {
+      "name": "Split SOP_ACK rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        140
+      ],
+      "parameters": {
+        "fieldToSplitOut": "acks",
+        "options": {}
+      },
+      "id": "9ee04a75-cd60-4004-a73a-1505912babce"
+    },
+    {
+      "name": "Append SOP_ACK",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        140
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "SOP_ACK"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "4cf607e4-43a0-490b-ab93-3adac32e4302"
+    },
+    {
+      "name": "Split audit rows",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "fieldToSplitOut": "audit",
+        "options": {}
+      },
+      "id": "3507520f-e5b4-4888-ad0d-9845f0e51380"
+    },
+    {
+      "name": "Append AUDIT_LOG",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1360,
+        300
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "__SAFELAB_SHEET_ID__"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "AUDIT_LOG"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_SHEETS__",
+          "name": "SafeLab Google Sheets"
+        }
+      },
+      "id": "1f068bc7-95aa-4c0c-ac9b-ed49c30fcb3c"
+    },
+    {
+      "name": "Split emails",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        460
+      ],
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {}
+      },
+      "id": "a0e6caab-4212-4694-a2f0-3b9abb298c29"
+    },
+    {
+      "name": "Send email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1360,
+        460
+      ],
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "__CRED_GMAIL__",
+          "name": "SafeLab Gmail"
+        }
+      },
+      "webhookId": "0780c22b-beca-4ed5-ab2d-c25fde178287",
+      "id": "8580c5b1-8da8-4ccf-a1d1-4f3f0b6ef327"
+    }
+  ],
+  "connections": {
+    "F03 row added": {
+      "main": [
+        [
+          {
+            "node": "Read CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read CONFIG": {
+      "main": [
+        [
+          {
+            "node": "Read SOP_MASTER",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read SOP_MASTER": {
+      "main": [
+        [
+          {
+            "node": "Read SOP_ACK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read SOP_ACK": {
+      "main": [
+        [
+          {
+            "node": "Build SOP acknowledgement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build SOP acknowledgement": {
+      "main": [
+        [
+          {
+            "node": "Split SOP_ACK rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split audit rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split SOP_ACK rows": {
+      "main": [
+        [
+          {
+            "node": "Append SOP_ACK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split audit rows": {
+      "main": [
+        [
+          {
+            "node": "Append AUDIT_LOG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split emails": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "tags": []
+}
