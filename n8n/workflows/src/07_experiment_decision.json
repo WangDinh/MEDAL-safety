@@ -67,7 +67,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "82093fb0-1762-41c7-ad3c-4e82f9685b9e"
+      "id": "82093fb0-1762-41c7-ad3c-4e82f9685b9e",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read EXPERIMENTS",
@@ -99,7 +102,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "c36436e1-637a-499e-a006-eaf19cf413ba"
+      "id": "c36436e1-637a-499e-a006-eaf19cf413ba",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read APPROVALS",
@@ -131,7 +137,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "a665dc9e-d02c-4163-a016-895e7e89719b"
+      "id": "a665dc9e-d02c-4163-a016-895e7e89719b",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Is POST?",
@@ -230,7 +239,10 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "71c1a127-a4b5-4380-a9b9-1759d5f923e3"
+      "id": "71c1a127-a4b5-4380-a9b9-1759d5f923e3",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Split APPROVALS rows",
@@ -280,7 +292,10 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "ca2b339c-bbd2-4d1e-ac78-364cb2510c39"
+      "id": "ca2b339c-bbd2-4d1e-ac78-364cb2510c39",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Split audit rows",
@@ -330,7 +345,11 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "b8b61abc-fac9-4169-aa34-64ec5d3fa195"
+      "id": "b8b61abc-fac9-4169-aa34-64ec5d3fa195",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
     },
     {
       "name": "Respond with result",
@@ -399,7 +418,10 @@
         }
       },
       "webhookId": "c8457b93-9882-4b3a-aa8f-c1cef67900e2",
-      "id": "d2e5b739-a43b-4ecd-a5b0-87e4d55e31de"
+      "id": "d2e5b739-a43b-4ecd-a5b0-87e4d55e31de",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Build decision page",

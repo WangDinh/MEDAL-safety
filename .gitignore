@@ -1,3 +1,3 @@
 .env
 node_modules/
-safelab/n8n/workflows/dist/
+n8n/workflows/dist/

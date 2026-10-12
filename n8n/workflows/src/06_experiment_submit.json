@@ -73,7 +73,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "cfa0bac6-27d4-40aa-a300-48f532304814"
+      "id": "cfa0bac6-27d4-40aa-a300-48f532304814",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read PEOPLE",
@@ -105,7 +108,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "c682ea21-ebaa-43b3-a730-68d2a18b8d1a"
+      "id": "c682ea21-ebaa-43b3-a730-68d2a18b8d1a",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read TRAINING_TYPES",
@@ -137,7 +143,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "63bcb25a-9367-470b-a7aa-b102279eff3f"
+      "id": "63bcb25a-9367-470b-a7aa-b102279eff3f",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read TRAINING_RECORDS",
@@ -169,7 +178,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "6f62714f-77ed-4188-a923-89d501422ce1"
+      "id": "6f62714f-77ed-4188-a923-89d501422ce1",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read SOP_MASTER",
@@ -201,7 +213,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "f13ca24d-a5d3-4cd3-abb4-2428288a2c2e"
+      "id": "f13ca24d-a5d3-4cd3-abb4-2428288a2c2e",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read SOP_ACK",
@@ -233,7 +248,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "24593dc1-e53b-4488-ace7-4b37cfc5213d"
+      "id": "24593dc1-e53b-4488-ace7-4b37cfc5213d",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read EQUIPMENT",
@@ -265,7 +283,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "8d7e0b3a-3066-4024-a990-6374f4e32342"
+      "id": "8d7e0b3a-3066-4024-a990-6374f4e32342",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read RISK_RULES",
@@ -297,7 +318,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "b909264d-457b-4acb-aea5-ce533a9693d8"
+      "id": "b909264d-457b-4acb-aea5-ce533a9693d8",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read VN_CHEMICAL_REGISTER",
@@ -329,7 +353,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "6151fadd-2215-4639-a9de-4d95b7408d27"
+      "id": "6151fadd-2215-4639-a9de-4d95b7408d27",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read EXPERIMENTS",
@@ -361,7 +388,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "aec687c7-2741-42ef-a542-f7a07f2f5657"
+      "id": "aec687c7-2741-42ef-a542-f7a07f2f5657",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Assess risk + compliance",
@@ -424,7 +454,10 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "f8bb2bf3-cc55-4774-a594-3c98d96941aa"
+      "id": "f8bb2bf3-cc55-4774-a594-3c98d96941aa",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Split CHEMICALS rows",
@@ -474,7 +507,10 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "31f76c72-2d73-498f-a104-a8136e3584b0"
+      "id": "31f76c72-2d73-498f-a104-a8136e3584b0",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Split audit rows",
@@ -524,7 +560,11 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "dd88d0fb-4c5b-4fc4-a1f1-f87901c9dbfd"
+      "id": "dd88d0fb-4c5b-4fc4-a1f1-f87901c9dbfd",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
     },
     {
       "name": "Split emails",
@@ -564,7 +604,10 @@
         }
       },
       "webhookId": "cff6d581-f4fd-4038-a6d2-46312a21b673",
-      "id": "a4ff2673-5dea-43a6-adc0-22f1ce6636ec"
+      "id": "a4ff2673-5dea-43a6-adc0-22f1ce6636ec",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

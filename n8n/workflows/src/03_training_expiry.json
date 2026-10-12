@@ -55,7 +55,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "3b9828ab-47b2-4950-a2d6-5ec8e6310b3a"
+      "id": "3b9828ab-47b2-4950-a2d6-5ec8e6310b3a",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read TRAINING_TYPES",
@@ -87,7 +90,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "87e71ecd-b6e5-4c13-ad13-783473a69fe6"
+      "id": "87e71ecd-b6e5-4c13-ad13-783473a69fe6",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read TRAINING_RECORDS",
@@ -119,7 +125,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "06ace043-3144-484e-ad75-c4e581f67ee0"
+      "id": "06ace043-3144-484e-ad75-c4e581f67ee0",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Find expiring training",
@@ -182,7 +191,11 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "20f189a5-7f74-4931-a423-1e2c784e20b6"
+      "id": "20f189a5-7f74-4931-a423-1e2c784e20b6",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
     },
     {
       "name": "Split emails",
@@ -222,7 +235,10 @@
         }
       },
       "webhookId": "c04aebc9-4c30-4e30-a3e7-8427cca2b994",
-      "id": "d5bdb1e3-15e6-4032-a075-77a388499beb"
+      "id": "d5bdb1e3-15e6-4032-a075-77a388499beb",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

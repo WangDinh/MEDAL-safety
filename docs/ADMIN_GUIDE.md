@@ -1,4 +1,6 @@
-# SafeLab — User Guide
+# SafeLab — Admin & Setup Guide
+
+> For the person who installs and maintains SafeLab. Lab members use the Word user guide instead.
 
 SafeLab is the lab's safety-approval system: researchers fill in **Google Forms**, everything is
 stored in one **Google Sheet** (`SAFELAB_MASTER`), and **n8n** checks, routes and emails
@@ -28,13 +30,13 @@ Google Form ──► SAFELAB_MASTER (Fxx_RESPONSES tab)
 ## Part 1 — Setup (one time, ~45 min)
 
 You need: Docker Desktop, a Google account (demo: `quangdinh2102@gmail.com`).
-All commands below are run in **PowerShell** from the `safelab` folder.
+All commands below are run in **PowerShell** from the repo folder (`D:\VinUni\code\MEDAL-safety`).
 
 ### 1. Create the master sheet and the 7 forms
 
 1. Go to <https://sheets.new> to create a blank Google Sheet.
-2. **Extensions → Apps Script**. Delete the sample code and paste all of [`safelab/google/SafeLab.gs`](../safelab/google/SafeLab.gs).
-3. **Project Settings (⚙) → tick "Show appsscript.json manifest file"**, open `appsscript.json` in the editor, and replace it with [`safelab/google/appsscript.json`](../safelab/google/appsscript.json).
+2. **Extensions → Apps Script**. Delete the sample code and paste all of [`google/SafeLab.gs`](../google/SafeLab.gs).
+3. **Project Settings (⚙) → tick "Show appsscript.json manifest file"**, open `appsscript.json` in the editor, and replace it with [`google/appsscript.json`](../google/appsscript.json).
 4. Back in the editor, select the function **`setupSafeLab`** and click **Run**.
    Google shows an "unverified app" warning because this is your own script: **Advanced → Go to project → Allow**.
 5. Reload the spreadsheet. A **SafeLab** menu appears. Then:
@@ -211,13 +213,26 @@ Never edit `EXPERIMENTS`, `APPROVALS` or `AUDIT_LOG` by hand except to correct a
 
 ## Part 5 — From demo to real use
 
-1. **Real people:** in `CONFIG`, set `PI_EMAIL`, `SUPERVISOR_EMAIL`, `SAFETY_REVIEWER_EMAIL`, `EHS_REVIEWER_EMAIL`, `SAFETY_COORDINATOR_EMAIL`.
-2. **Approval links reachable by everyone:** run n8n on a server (or keep it on a lab PC) behind HTTPS — e.g. a Cloudflare Tunnel or a reverse proxy (Caddy) — and set `SAFELAB_PUBLIC_URL=https://safelab.your-domain` in `.env`, then `docker compose up -d`. Add `https://safelab.your-domain/rest/oauth2-credential/callback` as a redirect URI in Google Cloud.
+1. **Real people:** in `CONFIG`, set `PI_EMAIL` (Dr. Simon Park: `simon.p@vinuni.edu.vn`), `SUPERVISOR_EMAIL`, `SAFETY_REVIEWER_EMAIL`, `EHS_REVIEWER_EMAIL`, `SAFETY_COORDINATOR_EMAIL`. Until go-live these stay on the demo address `quangdinh2102@gmail.com`.
+2. **Approval links reachable by everyone:** run n8n on the lab VM (planned) behind HTTPS — e.g. a Cloudflare Tunnel or a reverse proxy (Caddy) — and set `SAFELAB_PUBLIC_URL=https://safelab.your-domain` in `.env`, then `docker compose up -d`. Add `https://safelab.your-domain/rest/oauth2-credential/callback` as a redirect URI in Google Cloud.
 3. **Google consent screen:** while the app is in "Testing", Google expires the n8n sign-in after 7 days. Publish the consent screen (or use a Google Workspace *Internal* app) for long-term use.
 4. **Pin n8n:** set `N8N_VERSION` in `.env` to a specific version.
 5. **Back up:** the `n8n_data` Docker volume and `N8N_ENCRYPTION_KEY`. The sheet is backed up by Google (File → Version history).
-6. **Remove demo data:** delete the demo rows from `PEOPLE`, `TRAINING_RECORDS`, `SOP_ACK` and the demo email from `EQUIPMENT.authorized_users`.
+6. **Remove demo and test data:** delete the demo rows from `PEOPLE`, `TRAINING_RECORDS`, `SOP_ACK`, the test experiments from `EXPERIMENTS`/`APPROVALS`, and the demo email from `EQUIPMENT.authorized_users`.
 7. **Next steps from the Notion build order (not built yet):** Google Site home page linking the 7 forms, Looker Studio dashboard on top of the sheet, PDF approval record in Drive, QR codes on equipment.
+
+### Rolling out to the lab
+
+| Phase | What | Who |
+|---|---|---|
+| 0. Go-live prep | Steps 1–6 above; fill the placeholders in the user guide (emergency number, escape route, SafeLab server address) | Maintainer, Hau |
+| 1. Pilot (1 week) | 2–3 lab members go through F01 → F02 → F03 → F04 → approval; collect confusing points, fix the guide | Pilot group |
+| 2. Launch (weekly safety meeting, ~30 min) | Walk through the Quick start page of the user guide; everyone submits F01 on the spot | Whole lab |
+| 3. Backfill (2 weeks) | Everyone records past trainings (F02) and acknowledges current SOPs (F03); Hau confirms Vietnam OSH groups and equipment authorizations | Everyone, Hau |
+| 4. Enforce | From an announced date, every new experiment needs an approved F04 | PI |
+
+Hand out [`SafeLab_User_Guide.docx`](SafeLab_User_Guide.docx) (one guide for everyone, with chapters for reviewers, the PI and the coordinator).
+To change it, edit and run [`src/build_user_guide.js`](src/build_user_guide.js) (form links are at the top of the file), or edit the Word file directly.
 
 ---
 
@@ -238,9 +253,9 @@ Never edit `EXPERIMENTS`, `APPROVALS` or `AUDIT_LOG` by hand except to correct a
 
 ## Developer notes
 
-- Logic library: `safelab/n8n/lib/safelab.js` (risk, compliance, ids, tokens, email HTML), unit tests in `safelab/n8n/test/`:
+- Logic library: `n8n/lib/safelab.js` (risk, compliance, ids, tokens, email HTML), unit tests in `n8n/test/`:
   ```powershell
   docker run --rm -v "${PWD}/n8n:/w" -w /w node:20-alpine node --test test/
   ```
-- Workflow sources: `safelab/n8n/workflows/src/*.json`. Code nodes start with `/*@@SAFELAB_LIB@@*/`, which `build.mjs` replaces with the library. Edit `src`, never `dist`, then rebuild and re-import.
+- Workflow sources: `n8n/workflows/src/*.json`. Code nodes start with `/*@@SAFELAB_LIB@@*/`, which `build.mjs` replaces with the library. Edit `src`, never `dist`, then rebuild and re-import.
 - Field names and rules are fixed in [SAFELAB_SPEC.md](SAFELAB_SPEC.md); the Apps Script, the library and the workflows all follow it.

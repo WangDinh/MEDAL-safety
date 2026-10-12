@@ -19,22 +19,21 @@ QR codes, conditional per-hazard form sections.
 ## 1. Repository layout
 
 ```text
-safelab/
-  docker-compose.yml          n8n (single container, SQLite volume)
-  .env.example
-  google/
-    SafeLab.gs                Apps Script: builds workbook + 7 forms + dashboard + demo data
-    appsscript.json
-  n8n/
-    package.json              "test": "node --test"   (no dependencies)
-    lib/safelab.js            pure logic library (risk, compliance, ids, tokens, html)
-    test/safelab.test.js      node:test unit tests
-    build.mjs                 injects lib + sheet id into workflows → workflows/dist/
-    workflows/src/*.json      workflow sources (contain placeholders)
-    workflows/dist/*.json     generated, importable into n8n
+docker-compose.yml            n8n (single container, SQLite volume)
+.env.example
+google/
+  SafeLab.gs                  Apps Script: builds workbook + 7 forms + dashboard + demo data
+  appsscript.json
+n8n/
+  package.json                "test": "node --test"   (no dependencies)
+  lib/safelab.js              pure logic library (risk, compliance, ids, tokens, html)
+  test/safelab.test.js        node:test unit tests
+  build.mjs                   injects lib + sheet id into workflows → workflows/dist/
+  workflows/src/*.json        workflow sources (contain placeholders)
+  workflows/dist/*.json       generated, importable into n8n
 docs/
   SAFELAB_SPEC.md             this file
-  USER_GUIDE.md               setup + usage guide
+  ADMIN_GUIDE.md              setup + administration guide (for maintainers)
   notion/                     exported design pages
 ```
 
@@ -293,7 +292,7 @@ Chemical line example: `67-56-1, Methanol, 2, kg`. Units understood for threshol
 
 ---
 
-## 5. Library `safelab/n8n/lib/safelab.js`
+## 5. Library `n8n/lib/safelab.js`
 
 Plain ES2020, **no top-level `require`**, no `import`/`export`. Wrapped as:
 

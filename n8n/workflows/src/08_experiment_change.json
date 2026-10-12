@@ -73,7 +73,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "61899b52-b95e-439d-aa3d-d0a1aeb214e0"
+      "id": "61899b52-b95e-439d-aa3d-d0a1aeb214e0",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read EXPERIMENTS",
@@ -105,7 +108,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "20e5e6f8-67a8-45f5-a50b-23dcd93c37f0"
+      "id": "20e5e6f8-67a8-45f5-a50b-23dcd93c37f0",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Handle change request",
@@ -170,7 +176,10 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "0e8c42e6-a2b8-44a7-a0e2-67374c34bd5c"
+      "id": "0e8c42e6-a2b8-44a7-a0e2-67374c34bd5c",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Split audit rows",
@@ -220,7 +229,11 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "8c586a2e-8413-4bae-a6a0-69e24fed5d39"
+      "id": "8c586a2e-8413-4bae-a6a0-69e24fed5d39",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
     },
     {
       "name": "Split emails",
@@ -260,7 +273,10 @@
         }
       },
       "webhookId": "f8fa2602-3a7c-4646-add0-4801cfca549c",
-      "id": "d062f88f-0de7-4597-a96b-10f6a65e55ab"
+      "id": "d062f88f-0de7-4597-a96b-10f6a65e55ab",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

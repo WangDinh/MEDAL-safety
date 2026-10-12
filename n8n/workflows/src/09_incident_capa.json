@@ -113,7 +113,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "6c85f224-76d8-43d8-a8d6-f249c3aa4965"
+      "id": "6c85f224-76d8-43d8-a8d6-f249c3aa4965",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read INCIDENTS",
@@ -145,7 +148,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "58538a5c-b8e0-4b9c-a801-53b27246e061"
+      "id": "58538a5c-b8e0-4b9c-a801-53b27246e061",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read CAPA",
@@ -177,7 +183,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "61bb37f8-ca11-4226-a923-0ac53fc843a1"
+      "id": "61bb37f8-ca11-4226-a923-0ac53fc843a1",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Build incident + CAPA",
@@ -240,7 +249,10 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "2291d427-1c5f-4dae-a953-06ec49600e66"
+      "id": "2291d427-1c5f-4dae-a953-06ec49600e66",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Split CAPA rows",
@@ -290,7 +302,10 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "dc94dbd6-5259-4aaa-a438-ba5b24398f80"
+      "id": "dc94dbd6-5259-4aaa-a438-ba5b24398f80",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Split audit rows",
@@ -340,7 +355,11 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "24396537-3bd4-49c7-affc-8d724eea9e16"
+      "id": "24396537-3bd4-49c7-affc-8d724eea9e16",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
     },
     {
       "name": "Split emails",
@@ -380,7 +399,10 @@
         }
       },
       "webhookId": "ac24c48a-18bb-479f-a817-9af491d42736",
-      "id": "8f8548e2-d90c-4741-a1a6-d5380eb475e3"
+      "id": "8f8548e2-d90c-4741-a1a6-d5380eb475e3",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

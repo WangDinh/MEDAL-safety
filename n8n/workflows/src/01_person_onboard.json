@@ -73,7 +73,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "9d68465f-9c01-46ce-a1e1-e6e5e71b6373"
+      "id": "9d68465f-9c01-46ce-a1e1-e6e5e71b6373",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read PEOPLE",
@@ -105,7 +108,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "88a6eed5-412d-4237-a008-8301084c4629"
+      "id": "88a6eed5-412d-4237-a008-8301084c4629",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Read TRAINING_TYPES",
@@ -137,7 +143,10 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "95da6649-50ba-4d2b-a385-03afb2bb85c2"
+      "id": "95da6649-50ba-4d2b-a385-03afb2bb85c2",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Build person + welcome email",
@@ -202,7 +211,10 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "c6d77e07-aede-4e97-a801-00a0093c14b3"
+      "id": "c6d77e07-aede-4e97-a801-00a0093c14b3",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Split audit rows",
@@ -252,7 +264,11 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "3ee39393-3524-4283-a8f2-930f6fdb38ee"
+      "id": "3ee39393-3524-4283-a8f2-930f6fdb38ee",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
     },
     {
       "name": "Split emails",
@@ -292,7 +308,10 @@
         }
       },
       "webhookId": "0780c22b-beca-4ed5-ab2d-c25fde178287",
-      "id": "58633250-23c1-40a7-a815-90ebd94e466c"
+      "id": "58633250-23c1-40a7-a815-90ebd94e466c",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {

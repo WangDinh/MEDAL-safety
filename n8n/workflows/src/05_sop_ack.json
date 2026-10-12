@@ -1,10 +1,10 @@
 {
-  "id": "safelab02training",
-  "name": "SafeLab 02 Training Record",
+  "id": "safelab05sopack",
+  "name": "SafeLab 05 SOP Acknowledgement",
   "active": false,
   "nodes": [
     {
-      "name": "F02 row added",
+      "name": "F03 row added",
       "type": "n8n-nodes-base.googleSheetsTrigger",
       "typeVersion": 1,
       "position": [
@@ -27,7 +27,7 @@
         "sheetName": {
           "__rl": true,
           "mode": "name",
-          "value": "F02_RESPONSES"
+          "value": "F03_RESPONSES"
         },
         "event": "rowAdded",
         "options": {
@@ -41,7 +41,7 @@
           "name": "SafeLab Sheets Trigger"
         }
       },
-      "id": "49bc9820-83fb-45aa-af34-2719eda84037"
+      "id": "bf58c716-81d9-4a4c-a485-9d9fcf8b66f2"
     },
     {
       "name": "Read CONFIG",
@@ -73,10 +73,13 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "fa7520ce-f486-44e3-afce-092437ee70a7"
+      "id": "8e61c9f7-66ad-4aa2-a085-ee88edbd1312",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
-      "name": "Read TRAINING_TYPES",
+      "name": "Read SOP_MASTER",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
@@ -93,7 +96,7 @@
         "sheetName": {
           "__rl": true,
           "mode": "name",
-          "value": "TRAINING_TYPES"
+          "value": "SOP_MASTER"
         },
         "options": {}
       },
@@ -105,10 +108,13 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "7571cbff-7439-4e2a-a740-023084cbfa99"
+      "id": "b403fbb6-630a-4212-a43c-b07e5346bfad",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
-      "name": "Read TRAINING_RECORDS",
+      "name": "Read SOP_ACK",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
@@ -125,7 +131,7 @@
         "sheetName": {
           "__rl": true,
           "mode": "name",
-          "value": "TRAINING_RECORDS"
+          "value": "SOP_ACK"
         },
         "options": {}
       },
@@ -137,10 +143,13 @@
       },
       "executeOnce": true,
       "alwaysOutputData": true,
-      "id": "e696b06e-bea4-4aeb-a92f-5a1a62d40f00"
+      "id": "b3302d2b-1acf-4501-a425-02e4316e744c",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
-      "name": "Build training record",
+      "name": "Build SOP acknowledgement",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
@@ -148,12 +157,12 @@
         300
       ],
       "parameters": {
-        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 02 Training record: F02 row -> TRAINING_RECORDS row, confirmation email ----\nconst types = {};\nrowsOf('Read TRAINING_TYPES').forEach((t) => { if (text(t.training_code)) types[text(t.training_code).toUpperCase()] = t; });\nconst ids = rowsOf('Read TRAINING_RECORDS').map((r) => r.record_id);\n\nconst records = [];\nconst auditRows = [];\nconst emails = [];\n\nfor (const r of rowsOf('F02 row added')) {\n  const email = lower(r['Email Address']);\n  if (!email) continue;\n  // Dropdown value is \"<training_code> — <name>\"\n  const code = text(r['Training']).split(/\\s+[—–-]\\s+/)[0].trim().toUpperCase();\n  const type = types[code];\n  const completedOn = SafeLab.parseDate(r['Completion date']);\n  const expiresOn = type ? SafeLab.trainingExpiry(completedOn, type.validity_months) : '';\n  const id = SafeLab.nextId('TR', year, ids);\n  ids.push(id);\n\n  records.push(sheetRow({\n    record_id: id,\n    email,\n    training_code: code,\n    completed_on: completedOn,\n    expires_on: expiresOn,\n    quiz_score: text(r['Quiz score (%)']),\n    evidence_url: text(r['Evidence link']),\n    recorded_at: nowIso,\n  }));\n  auditRows.push(audit(email, 'TRAINING_RECORDED', 'TRAINING_RECORDS', id,\n    `${code} completed ${completedOn || '?'}, expires ${expiresOn || 'never'}`));\n\n  const problems = [];\n  if (!type) problems.push(`Training code \"${code}\" is not in TRAINING_TYPES – the safety coordinator will check it.`);\n  if (!completedOn) problems.push('The completion date could not be read.');\n  emails.push(mail(email, `[SafeLab] Training recorded – ${code} (${id})`,\n    `<h2>Training recorded: ${esc(code)}${type ? ' – ' + esc(type.name) : ''}</h2>` +\n    `<p>Record ID: <b>${esc(id)}</b><br>Completed on: <b>${esc(completedOn || '?')}</b><br>` +\n    `Valid until: <b>${esc(expiresOn || (type ? 'does not expire' : 'unknown'))}</b></p>` +\n    (problems.length ? `<p style=\"color:#b45309\"><b>Please check:</b><br>${problems.map(esc).join('<br>')}</p>` : '') +\n    '<p>You will get a reminder before this training expires.</p>'));\n}\n\nreturn [{ json: { records, audit: auditRows, emails: emails.filter((e) => e.to) } }];\n"
+        "jsCode": "/*@@SAFELAB_LIB@@*/\n\n// ---- Shared helpers (same block in every SafeLab workflow) ----\nconst rowsOf = (node) => $(node).all().map((i) => i.json).filter((r) => r && Object.keys(r).length);\nconst now = $now.setZone('Asia/Ho_Chi_Minh');\nconst today = now.toFormat('yyyy-MM-dd');\nconst nowIso = now.toFormat(\"yyyy-MM-dd'T'HH:mm:ssZZ\"); // e.g. 2026-10-11T21:30:00+07:00\nconst year = now.year;\nconst esc = SafeLab.escapeHtml;\nconst text = (v) => (v === null || v === undefined ? '' : String(v).trim());\nconst lower = (v) => text(v).toLowerCase();\n// Google Sheets treats text starting with = + - @ as a formula: prefix ' so it is stored as plain text.\nconst sheetRow = (row) => Object.fromEntries(Object.entries(row).map(([k, v]) =>\n  [k, typeof v === 'string' && /^[=+\\-@]/.test(v) ? \"'\" + v : v]));\nconst audit = (actor, action, entity, entityId, details) =>\n  sheetRow({ ts: nowIso, actor: actor || 'system', action, entity, entity_id: entityId, details: text(details).slice(0, 1000) });\nconst link = (url, label) =>\n  (text(url) ? `<a href=\"${esc(url)}\">${esc(label)}</a>` : `${esc(label)} (link not configured in CONFIG)`);\nconst mail = (to, subject, body) => ({\n  to: [...new Set([].concat(to).map(lower).filter(Boolean))].join(', '),\n  subject: text(subject).replace(/\\s+/g, ' '),\n  html: `<div style=\"font-family:Arial,sans-serif;font-size:14px;line-height:1.5;color:#111\">${body}` +\n    '<p style=\"color:#6b7280;font-size:12px;margin-top:24px\">Automated message from SafeLab (lab-safety approval system).</p></div>',\n});\nconst cfg = SafeLab.configMap(rowsOf('Read CONFIG'));\n\n// ---- 05 SOP acknowledgement: F03 row -> SOP_ACK row for the CURRENT SOP version ----\nconst sops = {};\nrowsOf('Read SOP_MASTER').forEach((s) => { if (text(s.sop_id)) sops[text(s.sop_id).toUpperCase()] = s; });\nconst ids = rowsOf('Read SOP_ACK').map((r) => r.ack_id);\n\nconst acks = [];\nconst auditRows = [];\nconst emails = [];\n\nfor (const r of rowsOf('F03 row added')) {\n  const email = lower(r['Email Address']);\n  if (!email) continue;\n  // Dropdown value is \"<sop_id> — <title>\"\n  const sopId = text(r['SOP']).split(/\\s+[—–-]\\s+/)[0].trim().toUpperCase();\n  const sop = sops[sopId];\n  const problem = !sop ? `${sopId || '(blank)'} is not in SOP_MASTER`\n    : text(sop.status).toUpperCase() !== 'ACTIVE' ? `${sopId} is not ACTIVE (${text(sop.status) || 'blank'})`\n    : !text(r['Acknowledgement']) ? 'the acknowledgement box was not ticked' : '';\n\n  if (problem) {\n    auditRows.push(audit(email, 'SOP_ACK_REJECTED', 'SOP_ACK', sopId, problem));\n    emails.push(mail(email, `[SafeLab] SOP acknowledgement not recorded – ${sopId}`,\n      `<h2>SOP acknowledgement not recorded</h2><p>Your acknowledgement of <b>${esc(sopId)}</b> could not be recorded: ` +\n      `${esc(problem)}.</p><p>Please contact the safety coordinator or submit the ` +\n      `${link(cfg.FORM_F03_URL, 'SOP Acknowledgement form (F03)')} again.</p>`));\n    continue;\n  }\n\n  const id = SafeLab.nextId('ACK', year, ids);\n  ids.push(id);\n  acks.push(sheetRow({ ack_id: id, email, sop_id: sopId, version: sop.version, acknowledged_at: nowIso }));\n  auditRows.push(audit(email, 'SOP_ACKNOWLEDGED', 'SOP_ACK', id, `${sopId} v${text(sop.version)}`));\n}\n\nreturn [{ json: { acks, audit: auditRows, emails: emails.filter((e) => e.to) } }];\n"
       },
-      "id": "f1f9d175-b6eb-4e11-a74e-9b3f2e6f1599"
+      "id": "e566cfd2-2072-4f4e-a902-4048d0e8045a"
     },
     {
-      "name": "Split TRAINING_RECORDS rows",
+      "name": "Split SOP_ACK rows",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
@@ -161,13 +170,13 @@
         140
       ],
       "parameters": {
-        "fieldToSplitOut": "records",
+        "fieldToSplitOut": "acks",
         "options": {}
       },
-      "id": "7d29fed7-520a-422c-a0d5-43fec44b0ed3"
+      "id": "9ee04a75-cd60-4004-a73a-1505912babce"
     },
     {
-      "name": "Append TRAINING_RECORDS",
+      "name": "Append SOP_ACK",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
@@ -184,7 +193,7 @@
         "sheetName": {
           "__rl": true,
           "mode": "name",
-          "value": "TRAINING_RECORDS"
+          "value": "SOP_ACK"
         },
         "columns": {
           "mappingMode": "autoMapInputData",
@@ -200,7 +209,10 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "f16aa34f-4ea3-40f1-afd7-9f0cca728e8e"
+      "id": "4cf607e4-43a0-490b-ab93-3adac32e4302",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "name": "Split audit rows",
@@ -214,7 +226,7 @@
         "fieldToSplitOut": "audit",
         "options": {}
       },
-      "id": "83fb2526-556a-4cee-a287-50193e1f2aa3"
+      "id": "3507520f-e5b4-4888-ad0d-9845f0e51380"
     },
     {
       "name": "Append AUDIT_LOG",
@@ -250,7 +262,11 @@
           "name": "SafeLab Google Sheets"
         }
       },
-      "id": "ebe72999-96d0-4a70-a494-e588278f027f"
+      "id": "1f068bc7-95aa-4c0c-ac9b-ed49c30fcb3c",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
     },
     {
       "name": "Split emails",
@@ -264,7 +280,7 @@
         "fieldToSplitOut": "emails",
         "options": {}
       },
-      "id": "b172503f-7c53-4b01-af50-f90f8ac7b4ba"
+      "id": "a0e6caab-4212-4694-a2f0-3b9abb298c29"
     },
     {
       "name": "Send email",
@@ -290,11 +306,14 @@
         }
       },
       "webhookId": "0780c22b-beca-4ed5-ab2d-c25fde178287",
-      "id": "aad32ef2-a116-4fde-aceb-8d7c92af4953"
+      "id": "8580c5b1-8da8-4ccf-a1d1-4f3f0b6ef327",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     }
   ],
   "connections": {
-    "F02 row added": {
+    "F03 row added": {
       "main": [
         [
           {
@@ -309,40 +328,40 @@
       "main": [
         [
           {
-            "node": "Read TRAINING_TYPES",
+            "node": "Read SOP_MASTER",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Read TRAINING_TYPES": {
+    "Read SOP_MASTER": {
       "main": [
         [
           {
-            "node": "Read TRAINING_RECORDS",
+            "node": "Read SOP_ACK",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Read TRAINING_RECORDS": {
+    "Read SOP_ACK": {
       "main": [
         [
           {
-            "node": "Build training record",
+            "node": "Build SOP acknowledgement",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Build training record": {
+    "Build SOP acknowledgement": {
       "main": [
         [
           {
-            "node": "Split TRAINING_RECORDS rows",
+            "node": "Split SOP_ACK rows",
             "type": "main",
             "index": 0
           },
@@ -359,11 +378,11 @@
         ]
       ]
     },
-    "Split TRAINING_RECORDS rows": {
+    "Split SOP_ACK rows": {
       "main": [
         [
           {
-            "node": "Append TRAINING_RECORDS",
+            "node": "Append SOP_ACK",
             "type": "main",
             "index": 0
           }
